@@ -15,8 +15,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "YUMUM",
-  description: "YUMUM OEM matching platform",
+  title: "YUMYUM",
+  description: "YUMYUM OEM matching platform",
 };
 
 export default function RootLayout({

@@ -107,7 +107,7 @@ export default function Home() {
             <Badge variant="secondary" className="mb-4">
               Simple Process
             </Badge>
-            <h2 className="text-4xl font-bold mb-4">How YUMUM Works</h2>
+            <h2 className="text-4xl font-bold mb-4">How YUMYUM Works</h2>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
               Three simple steps to find your perfect manufacturing partner
             </p>
@@ -162,7 +162,7 @@ export default function Home() {
         <div className="container mx-auto max-w-[1400px]">
           <div className="text-center mb-16">
             <Badge variant="secondary" className="mb-4">
-              Why Choose YUMUM
+              Why Choose YUMYUM
             </Badge>
             <h2 className="text-4xl font-bold mb-4">
               Built for Modern Manufacturing
@@ -273,7 +273,7 @@ export default function Home() {
               Ready to Find Your Perfect Match?
             </h2>
             <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-              Join hundreds of brands already manufacturing smarter with YUMUM
+              Join hundreds of brands already manufacturing smarter with YUMYUM
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button size="xl" variant="hero" asChild>
@@ -313,7 +313,7 @@ export default function Home() {
               </a>
             </div>
             <div className="text-sm text-muted-foreground">
-              © 2025 YUMUM. All rights reserved.
+              © 2025 YUMYUM. All rights reserved.
             </div>
           </div>
         </div>

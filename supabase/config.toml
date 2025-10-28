@@ -1,0 +1,21 @@
+project_id = "ktjkmidczokavuzmpesi"
+
+[api]
+port = 54321
+schemas = ["public", "storage", "graphql_public", "extensions"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+major_version = 17
+
+[studio]
+port = 54323
+
+[auth]
+site_url = "http://localhost:3000"
+additional_redirect_urls = []
+jwt_expiry = 3600
+enable_signup = true
+jwt_secret = "NKQRBD3W26nd6oQ1RuF/kfrbh//hhJ4R1Jl7Z7gTjhR9ijYltEG/R9y712I3AeMNi2knn3jxMX/9Qd78gDvhsg=="

@@ -1,6 +1,7 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import Link from "next/link";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import Navigation from "@/components/Navigation";
 import ProtectedClient from "@/components/ProtectedClient";
@@ -30,6 +31,8 @@ import {
   CreditCard,
   CheckCircle2,
 } from "lucide-react";
+import { useSupabase } from "@/lib/supabase/session-context";
+import { ROUTES } from "@/data/MockData";
 
 type FormState = {
   productBrief: string;
@@ -41,13 +44,19 @@ type FormState = {
   addAudit: boolean;
 };
 
+type OemInfo = {
+  id: string;
+  name: string;
+  slug: string | null;
+};
+
 function RequestForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const pathname = usePathname();
-  // Resolve if present; value is not used in this prototype
-  searchParams.get("oem");
+  const oemParam = searchParams.get("oem");
   const isPrototype = pathname.includes("/request/prototype");
+  const { supabase } = useSupabase();
 
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState<FormState>({
@@ -59,24 +68,69 @@ function RequestForm() {
     addEscrow: false,
     addAudit: false,
   });
+  const [oem, setOem] = useState<OemInfo | null>(null);
+  const [isLoadingOem, setIsLoadingOem] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const totalSteps = 5;
   const progress = (step / totalSteps) * 100;
 
-  const handleNext = () => {
-    if (step < totalSteps) {
-      setStep(step + 1);
-    } else {
-      toast.success("Request submitted successfully!", {
-        description: "The OEM will respond within 24-48 hours.",
-      });
-      setTimeout(() => router.push("/dashboard/buyer"), 1200);
-    }
-  };
+  useEffect(() => {
+    const loadOem = async () => {
+      if (!oemParam) {
+        setIsLoadingOem(false);
+        return;
+      }
 
-  const handleBack = () => {
-    if (step > 1) setStep(step - 1);
-  };
+      setIsLoadingOem(true);
+
+      const trySlug = await supabase
+        .from("organizations")
+        .select("id, display_name, slug")
+        .eq("type", "oem")
+        .eq("slug", oemParam)
+        .maybeSingle();
+
+      if (trySlug.data) {
+        const orgData = trySlug.data as { id: string; display_name: string; slug: string | null };
+        setOem({
+          id: orgData.id,
+          name: orgData.display_name,
+          slug: orgData.slug,
+        });
+        setIsLoadingOem(false);
+        return;
+      }
+
+      if (trySlug.error && trySlug.error.code !== "PGRST116") {
+        toast.error("Unable to load OEM details.");
+        setIsLoadingOem(false);
+        return;
+      }
+
+      const tryId = await supabase
+        .from("organizations")
+        .select("id, display_name, slug")
+        .eq("type", "oem")
+        .eq("id", oemParam)
+        .maybeSingle();
+
+      if (tryId.data) {
+        const orgData = tryId.data as { id: string; display_name: string; slug: string | null };
+        setOem({
+          id: orgData.id,
+          name: orgData.display_name,
+          slug: orgData.slug,
+        });
+      } else if (tryId.error && tryId.error.code !== "PGRST116") {
+        toast.error("Unable to load OEM details.");
+      }
+
+      setIsLoadingOem(false);
+    };
+
+    loadOem();
+  }, [oemParam, supabase]);
 
   const updateFormData = <K extends keyof FormState>(
     key: K,
@@ -85,6 +139,96 @@ function RequestForm() {
     setFormData((prev) => ({ ...prev, [key]: value }));
   };
 
+  const isStepValid = () => {
+    if (step === 1) {
+      return formData.productBrief.trim().length > 0;
+    }
+    if (step === 3) {
+      return formData.quantity.trim().length > 0;
+    }
+    if (step === 4) {
+      return formData.timeline.trim().length > 0;
+    }
+    if (step === 5) {
+      return formData.shipping.trim().length > 0 && formData.payment.trim().length > 0;
+    }
+    return true;
+  };
+
+  const submitRequest = async () => {
+    if (!oem) {
+      toast.error("Select a valid OEM before submitting.");
+      return;
+    }
+
+    const quantityValue = parseInt(formData.quantity, 10);
+    if (Number.isNaN(quantityValue) || quantityValue <= 0) {
+      toast.error("Please enter a valid quantity.");
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const response = await fetch("/api/requests", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          oemOrgId: oem.id,
+          type: isPrototype ? "prototype" : "quote",
+          title: `${isPrototype ? "Prototype" : "Quote"} Request - ${oem.name}`,
+          productBrief: formData.productBrief,
+          quantityMin: quantityValue,
+          unit: "units",
+          timeline: formData.timeline,
+          shippingTerms: formData.shipping,
+          paymentTerms: formData.payment,
+          addEscrow: formData.addEscrow,
+          addAudit: formData.addAudit,
+        }),
+      });
+
+      if (!response.ok) {
+        const body = await response.json().catch(() => null);
+        throw new Error(body?.error?.message ?? "Unable to submit request");
+      }
+
+      toast.success("Request submitted successfully!", {
+        description: "The OEM will respond within 24-48 hours.",
+      });
+      router.push(ROUTES.buyerDashboard);
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Unable to submit request."
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleNext = async () => {
+    if (!isStepValid()) {
+      toast.error("Please complete the required fields before continuing.");
+      return;
+    }
+
+    if (step < totalSteps) {
+      setStep(step + 1);
+      return;
+    }
+
+    if (isSubmitting) return;
+    await submitRequest();
+  };
+
+  const handleBack = () => {
+    if (step > 1) setStep(step - 1);
+  };
+
+  const isContinueDisabled = isSubmitting || !isStepValid();
+
   return (
     <ProtectedClient>
       <div className="min-h-screen bg-background">
@@ -92,7 +236,6 @@ function RequestForm() {
 
         <div className="pt-24 pb-12">
           <div className="container mx-auto max-w-3xl">
-            {/* Header */}
             <div className="text-center mb-8 animate-fade-in">
               <Badge variant="secondary" className="mb-4">
                 {isPrototype ? "Prototype Request" : "Quote Request"} - Step{" "}
@@ -106,14 +249,29 @@ function RequestForm() {
                   ? "Small-run samples to test your product before mass production"
                   : "Get a detailed quote for your manufacturing needs"}
               </p>
+              {isLoadingOem ? (
+                <p className="text-sm text-muted-foreground mt-2">
+                  Loading OEM details...
+                </p>
+              ) : oem ? (
+                <p className="text-sm text-muted-foreground mt-2">
+                  Requesting from <span className="font-semibold">{oem.name}</span>
+                </p>
+              ) : (
+                <p className="text-sm text-muted-foreground mt-2">
+                  OEM information was not found. Please return to{" "}
+                  <Link href={ROUTES.oems} className="underline">
+                    the OEM list
+                  </Link>{" "}
+                  and try again.
+                </p>
+              )}
             </div>
 
-            {/* Progress */}
             <div className="mb-8">
               <Progress value={progress} className="h-2" />
             </div>
 
-            {/* Form */}
             <Card className="p-8 animate-scale-in">
               {step === 1 && (
                 <div className="space-y-6">
@@ -130,8 +288,8 @@ function RequestForm() {
                       id="brief"
                       placeholder={
                         isPrototype
-                          ? "Describe the prototype you want to create. Include materials, design details, and any specific requirements..."
-                          : "Describe your product in detail. Include materials, specifications, design elements, and any special requirements..."
+                          ? "Describe the prototype you want to create..."
+                          : "Describe your product in detail..."
                       }
                       rows={8}
                       value={formData.productBrief}
@@ -177,31 +335,14 @@ function RequestForm() {
                   </div>
 
                   <div className="space-y-4">
-                    <div className="border-2 border-dashed border-border rounded-lg p-8 text-center hover:border-primary transition-colors cursor-pointer">
+                    <div className="border-2 border-dashed border-border rounded-lg p-8 text-center">
                       <Upload className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
                       <p className="font-medium mb-1">
-                        Click to upload or drag and drop
+                        Upload reference files (optional)
                       </p>
                       <p className="text-sm text-muted-foreground">
-                        Design files, tech packs, reference images, or
-                        specifications
+                        Design files, tech packs, reference images, or specifications
                       </p>
-                      <p className="text-xs text-muted-foreground mt-2">
-                        PDF, PNG, JPG, AI, PSD up to 20MB each
-                      </p>
-                    </div>
-
-                    <div className="text-sm text-muted-foreground">
-                      <p className="font-medium mb-2">
-                        Helpful files to include:
-                      </p>
-                      <ul className="list-disc list-inside space-y-1 ml-2">
-                        <li>Technical specifications or tech packs</li>
-                        <li>Design mockups or reference images</li>
-                        <li>Material samples or swatches</li>
-                        <li>Brand guidelines or logo files</li>
-                        <li>Packaging requirements</li>
-                      </ul>
                     </div>
                   </div>
                 </div>
@@ -213,33 +354,39 @@ function RequestForm() {
                     <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
                       <Package className="h-5 w-5 text-primary" />
                     </div>
-                    <h2 className="text-2xl font-semibold">
-                      Quantity & Timeline
-                    </h2>
+                    <h2 className="text-2xl font-semibold">Quantity</h2>
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="quantity">
-                      {isPrototype ? "Prototype Quantity" : "Order Quantity"}
-                    </Label>
+                    <Label htmlFor="quantity">Estimated Quantity</Label>
                     <Input
                       id="quantity"
                       type="number"
-                      placeholder={isPrototype ? "e.g., 10" : "e.g., 1000"}
+                      placeholder="e.g. 1000"
                       value={formData.quantity}
                       onChange={(e) =>
                         updateFormData("quantity", e.target.value)
                       }
+                      min={1}
                     />
-                    {isPrototype && (
-                      <p className="text-sm text-muted-foreground">
-                        Typical prototype runs are 5-50 units
-                      </p>
-                    )}
+                    <p className="text-sm text-muted-foreground">
+                      Enter the total units you expect for this order.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {step === 4 && (
+                <div className="space-y-6">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                      <Truck className="h-5 w-5 text-primary" />
+                    </div>
+                    <h2 className="text-2xl font-semibold">Timeline</h2>
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="timeline">Deadline / Timeline</Label>
+                    <Label htmlFor="timeline">Timeline / Deadline</Label>
                     <Select
                       value={formData.timeline}
                       onValueChange={(value) =>
@@ -253,7 +400,6 @@ function RequestForm() {
                         <SelectItem value="urgent">
                           Urgent (1-2 weeks)
                         </SelectItem>
-                        <SelectItem value="fast">Fast (2-4 weeks)</SelectItem>
                         <SelectItem value="standard">
                           Standard (1-2 months)
                         </SelectItem>
@@ -262,75 +408,6 @@ function RequestForm() {
                         </SelectItem>
                       </SelectContent>
                     </Select>
-                  </div>
-
-                  {isPrototype && (
-                    <div className="p-4 bg-success/10 rounded-lg border border-success/20">
-                      <div className="flex items-center gap-2 mb-2">
-                        <CheckCircle2 className="h-4 w-4 text-success" />
-                        <span className="font-semibold text-success">
-                          Prototype Fast-Track
-                        </span>
-                      </div>
-                      <p className="text-sm text-muted-foreground">
-                        Many OEMs prioritize prototype requests to help you move
-                        faster
-                      </p>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {step === 4 && (
-                <div className="space-y-6">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                      <Truck className="h-5 w-5 text-primary" />
-                    </div>
-                    <h2 className="text-2xl font-semibold">Shipping Details</h2>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="shipping">Shipping Method</Label>
-                    <Select
-                      value={formData.shipping}
-                      onValueChange={(value) =>
-                        updateFormData("shipping", value)
-                      }
-                    >
-                      <SelectTrigger id="shipping">
-                        <SelectValue placeholder="Select shipping method" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="air-express">
-                          Air Express (3-5 days)
-                        </SelectItem>
-                        <SelectItem value="air-standard">
-                          Air Standard (7-14 days)
-                        </SelectItem>
-                        <SelectItem value="sea">
-                          Sea Freight (30-45 days)
-                        </SelectItem>
-                        <SelectItem value="local">Local Pickup</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="address">Delivery Address</Label>
-                    <Textarea
-                      id="address"
-                      placeholder="Enter your complete shipping address..."
-                      rows={4}
-                    />
-                  </div>
-
-                  <div className="text-sm text-muted-foreground">
-                    <p className="font-medium mb-1">Need help with shipping?</p>
-                    <p>
-                      Many OEMs can assist with customs, duties, and logistics.
-                      Mention any specific requirements in your message.
-                    </p>
                   </div>
                 </div>
               )}
@@ -342,103 +419,62 @@ function RequestForm() {
                       <CreditCard className="h-5 w-5 text-primary" />
                     </div>
                     <h2 className="text-2xl font-semibold">
-                      Payment & Add-Ons
+                      Shipping & Payment
                     </h2>
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="payment">Preferred Payment Method</Label>
-                    <Select
-                      value={formData.payment}
-                      onValueChange={(value) =>
-                        updateFormData("payment", value)
+                    <Label htmlFor="shipping">Shipping Preferences</Label>
+                    <Textarea
+                      id="shipping"
+                      value={formData.shipping}
+                      onChange={(e) =>
+                        updateFormData("shipping", e.target.value)
                       }
-                    >
-                      <SelectTrigger id="payment">
-                        <SelectValue placeholder="Select payment method" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="bank">Bank Transfer</SelectItem>
-                        <SelectItem value="paypal">PayPal</SelectItem>
-                        <SelectItem value="card">Credit Card</SelectItem>
-                        <SelectItem value="escrow">Escrow Service</SelectItem>
-                        <SelectItem value="other">
-                          Other (specify in notes)
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-4">
-                    <Label>Optional Services</Label>
-
-                    <Card className="p-4 border-2">
-                      <div className="flex items-start gap-3">
-                        <Checkbox
-                          id="escrow"
-                          checked={formData.addEscrow}
-                          onCheckedChange={(checked) =>
-                            updateFormData("addEscrow", checked as boolean)
-                          }
-                        />
-                        <div className="flex-1">
-                          <Label
-                            htmlFor="escrow"
-                            className="cursor-pointer font-semibold"
-                          >
-                            Escrow Protection
-                          </Label>
-                          <p className="text-sm text-muted-foreground mt-1">
-                            Secure payment held until delivery confirmation.
-                            Recommended for first-time orders.
-                          </p>
-                          <Badge variant="scale" className="mt-2">
-                            Partner Plan Feature
-                          </Badge>
-                        </div>
-                      </div>
-                    </Card>
-
-                    <Card className="p-4 border-2">
-                      <div className="flex items-start gap-3">
-                        <Checkbox
-                          id="audit"
-                          checked={formData.addAudit}
-                          onCheckedChange={(checked) =>
-                            updateFormData("addAudit", checked as boolean)
-                          }
-                        />
-                        <div className="flex-1">
-                          <Label
-                            htmlFor="audit"
-                            className="cursor-pointer font-semibold"
-                          >
-                            Quality Audit
-                          </Label>
-                          <p className="text-sm text-muted-foreground mt-1">
-                            Independent inspection before shipment. Includes
-                            detailed quality report.
-                          </p>
-                          <Badge variant="scale" className="mt-2">
-                            Partner Plan Feature
-                          </Badge>
-                        </div>
-                      </div>
-                    </Card>
+                      placeholder="e.g. FOB Bangkok, include logistics support..."
+                    />
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="notes">Additional Notes</Label>
+                    <Label htmlFor="payment">Payment Preferences</Label>
                     <Textarea
-                      id="notes"
-                      placeholder="Any special requirements or questions for the OEM..."
-                      rows={4}
+                      id="payment"
+                      value={formData.payment}
+                      onChange={(e) =>
+                        updateFormData("payment", e.target.value)
+                      }
+                      placeholder="e.g. 30% deposit / 70% before shipment"
                     />
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="escrow"
+                      checked={formData.addEscrow}
+                      onCheckedChange={(checked) =>
+                        updateFormData("addEscrow", checked as boolean)
+                      }
+                    />
+                    <Label htmlFor="escrow" className="cursor-pointer">
+                      Include escrow service
+                    </Label>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="audit"
+                      checked={formData.addAudit}
+                      onCheckedChange={(checked) =>
+                        updateFormData("addAudit", checked as boolean)
+                      }
+                    />
+                    <Label htmlFor="audit" className="cursor-pointer">
+                      Include third-party factory audit
+                    </Label>
                   </div>
                 </div>
               )}
 
-              {/* Navigation */}
               <div className="flex justify-between mt-8 pt-6 border-t border-border">
                 {step > 1 && (
                   <Button variant="outline" onClick={handleBack}>
@@ -449,10 +485,14 @@ function RequestForm() {
                 <Button
                   onClick={handleNext}
                   className={step === 1 ? "w-full" : "ml-auto"}
-                  disabled={step === 1 && !formData.productBrief}
+                  disabled={isContinueDisabled || isLoadingOem || !oem}
                 >
-                  {step === totalSteps ? "Submit Request" : "Continue"}
-                  <ArrowRight className="ml-2 h-4 w-4" />
+                  {isSubmitting
+                    ? "Submitting..."
+                    : step === totalSteps
+                      ? "Submit Request"
+                      : "Continue"}
+                  {!isSubmitting && <ArrowRight className="ml-2 h-4 w-4" />}
                 </Button>
               </div>
             </Card>
@@ -463,7 +503,7 @@ function RequestForm() {
   );
 }
 
-export default function Page() {
+export default function RequestQuotePage() {
   return (
     <Suspense fallback={<div className="min-h-screen bg-background" />}>
       <RequestForm />

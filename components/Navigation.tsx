@@ -2,26 +2,33 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Menu, X } from "lucide-react";
-import { isAuthenticated, clearAuth } from "@/lib/auth";
 import { NAV, ROUTES } from "@/data/MockData";
+import { useSupabase } from "@/lib/supabase/session-context";
+import { useToast } from "@/hooks/use-toast";
 
 const Navigation = () => {
   const pathname = usePathname();
   const router = useRouter();
+  const { toast } = useToast();
+  const { session, supabase } = useSupabase();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  // Defer auth check to after mount to avoid hydration mismatch
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
-  useEffect(() => {
-    setIsLoggedIn(isAuthenticated());
-  }, []);
+  const isLoggedIn = !!session;
 
-  const handleLogout = () => {
-    clearAuth();
+  const handleLogout = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      toast({
+        variant: "destructive",
+        description: error.message,
+      });
+      return;
+    }
     router.push(ROUTES.login);
+    router.refresh();
   };
 
   const navLinks = isLoggedIn ? NAV.loggedIn : NAV.loggedOut;

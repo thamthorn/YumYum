@@ -1,13 +1,14 @@
 # YumYum - Logic Bug Analysis Report
 
 **Date:** October 29, 2025  
-**Focus:** Business Logic & Data Flow Issues
+**Focus:** Business Logic & Data Flow Issues  
+**Status:** ✅ Issues #4 and #5 FIXED | ⚠️ Issues #1, #2, #3, #6, #7 remain
 
 ---
 
 ## 🔴 CRITICAL Logic Bugs (2)
 
-### 1. **Duplicate Review Check Logic Flaw**
+### 1. **Duplicate Review Check Logic Flaw** ⚠️ NOT FIXED
 
 **File:** `domain/reviews/service.ts`  
 **Lines:** 92-109  
@@ -115,7 +116,7 @@ if (!input.orderId) {
 
 ---
 
-### 2. **Match Score Logic Flaw - Industry Match Always Awarded**
+### 2. **Match Score Logic Flaw - Industry Match Always Awarded** ⚠️ NOT FIXED
 
 **File:** `domain/matching/service.ts`  
 **Lines:** 41-43  
@@ -243,7 +244,7 @@ reasons.push(`Industry expertise in ${criteria.industry}`);
 
 ## 🟠 HIGH Priority Logic Issues (3)
 
-### 3. **Helpful Vote Race Condition**
+### 3. **Helpful Vote Race Condition** ⚠️ NOT FIXED (Skipped - no migrations)
 
 **File:** `domain/reviews/service.ts`  
 **Lines:** 285-330  
@@ -410,11 +411,11 @@ Then remove the manual count update from `markReviewHelpful()`.
 
 ---
 
-### 4. **MOQ Scoring Logic Edge Case**
+### 4. **MOQ Scoring Logic Edge Case** ✅ FIXED
 
 **File:** `domain/matching/service.ts`  
 **Lines:** 46-60  
-**Severity:** 🟠 MEDIUM-HIGH
+**Severity:** 🟠 MEDIUM-HIGH (NOW RESOLVED)
 
 **The Bug:**
 
@@ -538,11 +539,11 @@ if (criteria.moqMin !== undefined && criteria.moqMax !== undefined) {
 
 ---
 
-### 5. **Missing Transaction for Onboarding**
+### 5. **Missing Transaction for Onboarding** ✅ FIXED
 
 **File:** `domain/buyers/service.ts`  
 **Lines:** 31-190  
-**Severity:** 🟠 MEDIUM-HIGH
+**Severity:** 🟠 MEDIUM-HIGH (NOW RESOLVED)
 
 **The Bug:**
 The `processBuyerOnboarding` function performs multiple database operations:
@@ -614,7 +615,7 @@ try {
 
 ## 🟡 MEDIUM Priority Logic Issues (2)
 
-### 6. **Scale Points Always Awarded**
+### 6. **Scale Points Always Awarded** ⚠️ NOT FIXED
 
 **File:** `domain/matching/service.ts`  
 **Lines:** 77-87  
@@ -688,7 +689,7 @@ if (oem.scale && criteria.moqMax) {
 
 ---
 
-### 7. **Location Scoring Substring Match Issue**
+### 7. **Location Scoring Substring Match Issue** ⚠️ NOT FIXED
 
 **File:** `domain/matching/service.ts`  
 **Lines:** 63-76  
@@ -781,32 +782,32 @@ if (criteria.location && oem.organizations?.location) {
 
 ## 📋 Summary
 
-| Severity    | Count | Issues                                                                    |
-| ----------- | ----- | ------------------------------------------------------------------------- |
-| 🔴 Critical | 2     | Duplicate review bypass, Industry score always awarded                    |
-| 🟠 High     | 3     | Helpful vote race condition, MOQ logic edge case, No transaction rollback |
-| 🟡 Medium   | 2     | Scale always awarded, Location substring false positives                  |
-| **Total**   | **7** | **Logic bugs found**                                                      |
+| Severity    | Total | Fixed ✅ | Remaining ⚠️ | Issues                                                               |
+| ----------- | ----- | -------- | ------------ | -------------------------------------------------------------------- |
+| 🔴 Critical | 2     | 0        | 2            | Duplicate review bypass, Industry score always awarded               |
+| 🟠 High     | 3     | 2        | 1            | ~~MOQ logic~~, ~~Transaction rollback~~, Helpful vote race condition |
+| 🟡 Medium   | 2     | 0        | 2            | Scale always awarded, Location substring false positives             |
+| **Total**   | **7** | **2**    | **5**        | **2 Fixed, 5 Remaining**                                             |
 
 ---
 
 ## 🎯 Priority Fix Order
 
-### Must Fix Before Production (Critical)
+### Must Fix Before Production (Critical) ⚠️ NOT FIXED
 
-1. ✅ Fix duplicate review check - enforce one review per buyer-OEM pair
-2. ✅ Add industry validation to `calculateMatchScore()` function
+1. ⚠️ Fix duplicate review check - enforce one review per buyer-OEM pair
+2. ⚠️ Add industry validation to `calculateMatchScore()` function
 
 ### Should Fix Soon (High)
 
-3. ✅ Add database trigger for helpful_count or use atomic operations
-4. ✅ Fix MOQ scoring else-if logic
-5. ✅ Add transaction/rollback to onboarding flow
+3. ⚠️ Add database trigger for helpful_count or use atomic operations (SKIPPED - no migrations)
+4. ✅ **FIXED** - MOQ scoring else-if logic corrected
+5. ✅ **FIXED** - Transaction/rollback added to onboarding flow
 
 ### Can Fix Later (Medium)
 
-6. ✅ Improve scale compatibility scoring
-7. ✅ Better location matching (avoid false positives)
+6. ⚠️ Improve scale compatibility scoring
+7. ⚠️ Better location matching (avoid false positives)
 
 ---
 
@@ -816,11 +817,11 @@ Add unit tests for:
 
 1. `calculateMatchScore()` with various industry combinations
 2. Duplicate review prevention
-3. MOQ overlap edge cases (min/max null values)
+3. ✅ MOQ overlap edge cases (min/max null values) - FIXED
 4. Concurrent helpful votes
 5. Scale matching logic
 6. Location string matching
 
 ---
 
-**Overall Assessment:** Found 7 logic bugs, 2 are critical and must be fixed before production launch. The matching algorithm and review system have edge cases that need addressing.
+**Overall Assessment:** Found 7 logic bugs, 2 are critical and must be fixed before production launch. **2 bugs fixed (MOQ logic, Transaction rollback)**, 5 remain including both critical issues. The matching algorithm and review system have edge cases that need addressing.

@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import Navigation from "@/components/Navigation";
 import ReviewsList from "@/components/ReviewsList";
 import CreateReviewDialog from "@/components/CreateReviewDialog";
+import BookmarkButton from "@/components/BookmarkButton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -334,12 +335,18 @@ export default async function OEMProfile({
                   </Link>
                 </Button>
                 {session && (
-                  <Button variant="outline" asChild>
-                    <Link href={`/messages/new?oem=${organization.id}`}>
-                      <MessageSquare className="mr-2 h-4 w-4" />
-                      {COPY.ctas.directMessage}
-                    </Link>
-                  </Button>
+                  <>
+                    <Button variant="outline" asChild>
+                      <Link href={`/messages/new?oem=${organization.id}`}>
+                        <MessageSquare className="mr-2 h-4 w-4" />
+                        {COPY.ctas.directMessage}
+                      </Link>
+                    </Button>
+                    <BookmarkButton
+                      oemOrgId={organization.id}
+                      oemName={organization.display_name}
+                    />
+                  </>
                 )}
               </div>
             </div>

@@ -14,11 +14,7 @@ const SupabaseContext = createContext<SupabaseContextValue | undefined>(
   undefined
 );
 
-export function SupabaseProvider({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export function SupabaseProvider({ children }: { children: React.ReactNode }) {
   const [supabase] = useState(() => createSupabaseBrowserClient());
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -29,7 +25,7 @@ export function SupabaseProvider({
     // Use getUser() for secure initial authentication
     supabase.auth.getUser().then(({ data }) => {
       if (!mounted) return;
-      
+
       // If user exists, get the session for the session state
       if (data.user) {
         supabase.auth.getSession().then(({ data: sessionData }) => {

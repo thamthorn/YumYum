@@ -18,4 +18,3 @@ export const createSupabaseBrowserClient = () => {
   const { url, anonKey } = getBrowserConfig();
   return createBrowserClient<Database>(url, anonKey);
 };
-

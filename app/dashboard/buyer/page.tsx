@@ -23,6 +23,8 @@ import {
   Building2,
   FileText,
   Trash2,
+  Bookmark,
+  BookmarkCheck,
 } from "lucide-react";
 import {
   ROUTES,
@@ -81,6 +83,16 @@ type MatchResponse = {
   } | null;
 };
 
+type SavedOemResponse = {
+  oem_org_id: string;
+  created_at: string;
+  organizations: {
+    id: string;
+    display_name: string;
+    slug: string | null;
+  };
+};
+
 function DashboardContent() {
   const { session } = useSupabase();
   const queryClient = useQueryClient();
@@ -122,6 +134,77 @@ function DashboardContent() {
     },
     enabled: Boolean(session),
   });
+
+  // Fetch saved OEMs
+  const { data: savedOems = [], isLoading: isLoadingSavedOems } = useQuery<
+    SavedOemResponse[]
+  >({
+    queryKey: ["saved-oems"],
+    queryFn: async () => {
+      const response = await fetch("/api/saved-oems");
+      if (!response.ok) {
+        throw new Error("Failed to load saved OEMs");
+      }
+      const body = (await response.json()) as { savedOems: SavedOemResponse[] };
+      return body.savedOems ?? [];
+    },
+    enabled: Boolean(session),
+  });
+
+  // Track which OEMs are saved for quick lookup
+  const savedOemIds = new Set(savedOems.map((s) => s.oem_org_id));
+
+  // Save OEM mutation
+  const saveOemMutation = useMutation({
+    mutationFn: async (oemOrgId: string) => {
+      const response = await fetch("/api/saved-oems", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ oemOrgId }),
+      });
+      if (!response.ok) {
+        const body = await response.json().catch(() => null);
+        throw new Error(body?.error ?? "Failed to save OEM");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["saved-oems"] });
+      toast.success("OEM saved successfully");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    },
+  });
+
+  // Unsave OEM mutation
+  const unsaveOemMutation = useMutation({
+    mutationFn: async (oemOrgId: string) => {
+      const response = await fetch(`/api/saved-oems?oemOrgId=${oemOrgId}`, {
+        method: "DELETE",
+      });
+      if (!response.ok) {
+        const body = await response.json().catch(() => null);
+        throw new Error(body?.error ?? "Failed to remove saved OEM");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["saved-oems"] });
+      toast.success("OEM removed from saved");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const toggleSaveOem = (oemOrgId: string) => {
+    if (savedOemIds.has(oemOrgId)) {
+      unsaveOemMutation.mutate(oemOrgId);
+    } else {
+      saveOemMutation.mutate(oemOrgId);
+    }
+  };
 
   // Clear matches mutation
   const clearMatchesMutation = useMutation({
@@ -181,7 +264,7 @@ function DashboardContent() {
     },
     {
       label: "Saved OEMs",
-      value: "-",
+      value: savedOems.length.toString(),
       icon: Heart,
       color: "text-destructive",
     },
@@ -605,6 +688,27 @@ function DashboardContent() {
 
                           {/* Action Buttons - Dynamic based on status */}
                           <div className="flex gap-2">
+                            {/* Bookmark button - always shown */}
+                            <Button
+                              size="sm"
+                              variant={
+                                savedOemIds.has(oem.organizationId)
+                                  ? "default"
+                                  : "outline"
+                              }
+                              onClick={() => toggleSaveOem(oem.organizationId)}
+                              disabled={
+                                saveOemMutation.isPending ||
+                                unsaveOemMutation.isPending
+                              }
+                            >
+                              {savedOemIds.has(oem.organizationId) ? (
+                                <BookmarkCheck className="h-4 w-4" />
+                              ) : (
+                                <Bookmark className="h-4 w-4" />
+                              )}
+                            </Button>
+
                             {(match.status === "new_match" ||
                               match.status === "New Match") && (
                               <>
@@ -708,9 +812,79 @@ function DashboardContent() {
               </TabsContent>
 
               <TabsContent value="saved">
-                <Card className="p-12 text-center text-muted-foreground">
-                  Saved OEMs will appear here once you start bookmarking them.
-                </Card>
+                {isLoadingSavedOems ? (
+                  <Card className="p-12 text-center text-muted-foreground">
+                    Loading saved OEMs...
+                  </Card>
+                ) : savedOems.length === 0 ? (
+                  <Card className="p-12 text-center text-muted-foreground">
+                    <Heart className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                    <p className="text-lg font-medium mb-2">
+                      No saved OEMs yet
+                    </p>
+                    <p className="text-sm">
+                      Bookmark OEMs from your matches to see them here
+                    </p>
+                  </Card>
+                ) : (
+                  <div className="space-y-4">
+                    {savedOems.map((saved) => (
+                      <Card key={saved.oem_org_id} className="p-6">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-3 mb-2">
+                              <h3 className="text-lg font-semibold">
+                                {saved.organizations.display_name}
+                              </h3>
+                              <Badge variant="outline">
+                                <Heart className="h-3 w-3 mr-1 fill-current" />
+                                Saved
+                              </Badge>
+                            </div>
+                            <div className="text-sm text-muted-foreground mb-4">
+                              <span className="flex items-center gap-1">
+                                <Clock className="h-3 w-3" />
+                                Saved on{" "}
+                                {new Date(
+                                  saved.created_at
+                                ).toLocaleDateString()}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => toggleSaveOem(saved.oem_org_id)}
+                            disabled={unsaveOemMutation.isPending}
+                            className="text-destructive hover:text-destructive"
+                          >
+                            <Trash2 className="h-4 w-4 mr-1" />
+                            Remove
+                          </Button>
+                          <Button size="sm" asChild>
+                            <Link
+                              href={ROUTES.oemProfile(
+                                saved.organizations.slug ?? saved.oem_org_id
+                              )}
+                            >
+                              <Building2 className="h-4 w-4 mr-1" />
+                              View Profile
+                            </Link>
+                          </Button>
+                          <Button size="sm" variant="outline" asChild>
+                            <Link href={ROUTES.requestQuote(saved.oem_org_id)}>
+                              <Zap className="h-4 w-4 mr-1" />
+                              Request Quote
+                            </Link>
+                          </Button>
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+                )}
               </TabsContent>
             </Tabs>
           </div>

@@ -4,7 +4,7 @@ import { AppError, AuthError } from "@/utils/errors";
 
 export const getServerSession = async (): Promise<Session | null> => {
   const supabase = await createSupabaseServerClient();
-  
+
   // Use getUser() for secure authentication (validates with Supabase Auth server)
   const {
     data: { user },

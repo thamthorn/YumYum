@@ -6,9 +6,7 @@ export default function NotFound() {
     <div className="min-h-screen flex items-center justify-center bg-linear-to-b from-orange-50 to-yellow-50 dark:from-gray-900 dark:to-gray-800">
       <div className="text-center px-4">
         {/* 404 Text */}
-        <h1 className="text-8xl font-bold mb-4" style={{ color: "#f4a743" }}>
-          404
-        </h1>
+        <h1 className="text-8xl font-bold mb-4 text-primary">404</h1>
 
         {/* Main Message */}
         <h2 className="text-3xl font-semibold text-gray-800 dark:text-gray-200 mb-3">
@@ -17,15 +15,15 @@ export default function NotFound() {
 
         {/* Subtitle */}
         <p className="text-lg text-gray-600 dark:text-gray-400 mb-8 max-w-md mx-auto">
-          Looks like this page is not on our menu. The recipe you&apos;re looking for
-          might have been moved or doesn&apos;t exist.
+          Looks like this page is not on our menu. The recipe you&apos;re
+          looking for might have been moved or doesn&apos;t exist.
         </p>
 
         {/* Fun Facts */}
         <div className="mb-8 p-4 bg-white dark:bg-gray-800 rounded-lg shadow-md max-w-md mx-auto">
           <p className="text-sm text-gray-500 dark:text-gray-400 italic">
-            🍔 Fun fact: While you&apos;re here, did you know that YumYum connects
-            buyers with the best OEM manufacturers?
+            🍔 Fun fact: While you&apos;re here, did you know that YumYum
+            connects buyers with the best OEM manufacturers?
           </p>
         </div>
 
@@ -34,8 +32,7 @@ export default function NotFound() {
           <Link href="/">
             <Button
               size="lg"
-              className="text-white px-8"
-              style={{ backgroundColor: "#f4a743" }}
+              className="bg-primary hover:bg-primary/90 text-white px-8"
             >
               🏠 Back to Home
             </Button>
@@ -44,8 +41,7 @@ export default function NotFound() {
             <Button
               size="lg"
               variant="outline"
-              className="px-8"
-              style={{ borderColor: "#f4a743", color: "#f4a743" }}
+              className="border-primary text-primary hover:bg-primary/10 px-8"
             >
               🔍 Browse OEMs
             </Button>

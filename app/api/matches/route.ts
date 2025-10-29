@@ -6,15 +6,22 @@ import type { Database } from "@/types/database";
 
 type MatchSummaryRow = Pick<
   Database["public"]["Tables"]["matches"]["Row"],
-  "id" | "oem_org_id" | "status" | "score" | "created_at"
+  | "id"
+  | "oem_org_id"
+  | "status"
+  | "score"
+  | "digest"
+  | "created_at"
+  | "updated_at"
 >;
 
-type MatchOEMProfileRow = Database["public"]["Tables"]["oem_profiles"]["Row"] & {
-  organizations: Pick<
-    Database["public"]["Tables"]["organizations"]["Row"],
-    "id" | "slug" | "display_name" | "industry" | "location"
-  > | null;
-};
+type MatchOEMProfileRow =
+  Database["public"]["Tables"]["oem_profiles"]["Row"] & {
+    organizations: Pick<
+      Database["public"]["Tables"]["organizations"]["Row"],
+      "id" | "slug" | "display_name" | "industry" | "location"
+    > | null;
+  };
 
 type MatchCertificationRow = {
   oem_org_id: Database["public"]["Tables"]["oem_certifications"]["Row"]["oem_org_id"];
@@ -57,7 +64,7 @@ export const GET = withErrorHandling(async (request: Request) => {
 
   const { data: matchRows, error: matchError } = await supabase
     .from("matches")
-    .select("id, oem_org_id, status, score, created_at")
+    .select("id, oem_org_id, status, score, digest, created_at, updated_at")
     .filter("buyer_org_id", "eq", buyerOrgIdFilter)
     .order("created_at", { ascending: false });
 
@@ -74,9 +81,7 @@ export const GET = withErrorHandling(async (request: Request) => {
     return jsonResponse({ data: [] });
   }
 
-  const rawOrgIds = Array.from(
-    new Set(matchList.map((row) => row.oem_org_id))
-  );
+  const rawOrgIds = Array.from(new Set(matchList.map((row) => row.oem_org_id)));
 
   if (rawOrgIds.length === 0) {
     return jsonResponse({ data: [] });
@@ -121,11 +126,9 @@ export const GET = withErrorHandling(async (request: Request) => {
     .select("oem_org_id, certifications (name)")
     .filter("oem_org_id", "in", organizationIdFilter);
 
+  // Don't throw error if certifications fail - it's optional data
   if (certError) {
-    throw new AppError("Failed to load OEM certifications", {
-      cause: certError,
-      code: "match_oem_certifications_failed",
-    });
+    console.warn("Failed to load OEM certifications:", certError);
   }
 
   const oemProfiles = (oemRows ?? []) as unknown as MatchOEMProfileRow[];
@@ -135,13 +138,14 @@ export const GET = withErrorHandling(async (request: Request) => {
     oemMap.set(row.organization_id, row);
   });
 
-  const certMap = new Map<string, string[]>();
-  const oemCertifications = (certRows ?? []) as unknown as MatchCertificationRow[];
+  const certMap = new Map<string, Array<{ name: string; issuedBy: string }>>();
+  const oemCertifications = (certRows ??
+    []) as unknown as MatchCertificationRow[];
   oemCertifications.forEach((row) => {
     const name = row.certifications?.name;
     if (!name) return;
     const list = certMap.get(row.oem_org_id) ?? [];
-    list.push(name);
+    list.push({ name, issuedBy: "Verified" }); // Default to "Verified" since issued_by is not in DB
     certMap.set(row.oem_org_id, list);
   });
 
@@ -151,7 +155,9 @@ export const GET = withErrorHandling(async (request: Request) => {
       id: match.id,
       status: match.status,
       score: match.score,
+      digest: match.digest,
       createdAt: match.created_at,
+      updatedAt: match.updated_at,
       oem: oem
         ? {
             organizationId: oem.organization_id,

@@ -1,7 +1,6 @@
-"use client";
-
 import Link from "next/link";
 import Image from "next/image";
+import type { Metadata } from "next";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -18,6 +17,17 @@ import {
   Zap,
   TrendingUp,
 } from "lucide-react";
+
+export const metadata: Metadata = {
+  title: "YUMYUM - Match with the Right OEM Manufacturer Faster",
+  description:
+    "From prototypes to production, find verified manufacturers who match your MOQ, timeline, and quality standards. Trusted by 500+ brands.",
+  openGraph: {
+    title: "YUMYUM - Match with the Right OEM Manufacturer Faster",
+    description:
+      "From prototypes to production, find verified manufacturers who match your MOQ, timeline, and quality standards. Trusted by 500+ brands.",
+  },
+};
 
 export default function Home() {
   const heroImage = "/hero-manufacturing.jpg";
@@ -268,7 +278,7 @@ export default function Home() {
       {/* CTA Section */}
       <section className="py-20">
         <div className="container mx-auto max-w-[1400px]">
-          <Card className="p-12 text-center bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
+          <Card className="p-12 text-center bg-linear-to-br from-primary/5 to-primary/10 border-primary/20">
             <h2 className="text-4xl font-bold mb-4">
               Ready to Find Your Perfect Match?
             </h2>

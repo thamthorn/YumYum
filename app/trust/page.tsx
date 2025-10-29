@@ -1,6 +1,5 @@
-"use client";
-
 import Link from "next/link";
+import type { Metadata } from "next";
 import Navigation from "@/components/Navigation";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -13,6 +12,17 @@ import {
   Star,
   Award,
 } from "lucide-react";
+
+export const metadata: Metadata = {
+  title: "Trust & Verification | YUMYUM",
+  description:
+    "Every OEM on YUMYUM undergoes rigorous verification to ensure quality, reliability, and professionalism. Learn about our verification tiers and standards.",
+  openGraph: {
+    title: "Trust & Verification | YUMYUM",
+    description:
+      "Every OEM on YUMYUM undergoes rigorous verification to ensure quality, reliability, and professionalism.",
+  },
+};
 
 export default function Trust() {
   return (
@@ -67,10 +77,7 @@ export default function Trust() {
                 </div>
               </Card>
 
-              <Card
-                className="p-6 animate-scale-in border-2 border-info"
-                style={{ animationDelay: "100ms" as unknown as string }}
-              >
+              <Card className="p-6 animate-scale-in border-2 border-info">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="h-12 w-12 rounded-xl bg-info/10 flex items-center justify-center">
                     <FileCheck className="h-6 w-6 text-info" />
@@ -102,10 +109,7 @@ export default function Trust() {
                 </div>
               </Card>
 
-              <Card
-                className="p-6 animate-scale-in border-2 border-primary"
-                style={{ animationDelay: "200ms" as unknown as string }}
-              >
+              <Card className="p-6 animate-scale-in border-2 border-primary">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="h-12 w-12 rounded-xl bg-trusted/10 flex items-center justify-center">
                     <Star className="h-6 w-6 text-trusted" />
@@ -176,13 +180,7 @@ export default function Trust() {
                     "Ongoing monitoring of response times, delivery reliability, and buyer satisfaction ratings.",
                 },
               ].map((step, index) => (
-                <Card
-                  key={index}
-                  className="p-6 animate-fade-in"
-                  style={{
-                    animationDelay: `${index * 100}ms` as unknown as string,
-                  }}
-                >
+                <Card key={index} className="p-6 animate-fade-in">
                   <div className="flex gap-4">
                     <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
                       <step.icon className="h-6 w-6 text-primary" />

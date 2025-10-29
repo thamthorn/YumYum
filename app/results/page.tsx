@@ -34,30 +34,23 @@ import {
 import { useSupabase } from "@/lib/supabase/session-context";
 import { toast } from "sonner";
 
-type MatchResponse = {
-  id: string;
-  status: string;
-  score: number | null;
-  createdAt: string | null;
-  oem: {
-    organizationId: string;
-    name: string;
-    slug: string | null;
-    industry: string | null;
-    location: string | null;
-    scale: "small" | "medium" | "large" | null;
-    moqMin: number | null;
-    moqMax: number | null;
-    crossBorder: boolean | null;
-    prototypeSupport: boolean | null;
-    rating: number | null;
-    totalReviews: number | null;
-    certifications: string[];
-  } | null;
+type OEMResponse = {
+  organizationId: string;
+  name: string;
+  slug: string | null;
+  industry: string | null;
+  location: string | null;
+  scale: "small" | "medium" | "large" | null;
+  moqMin: number | null;
+  moqMax: number | null;
+  crossBorder: boolean | null;
+  prototypeSupport: boolean | null;
+  rating: number | null;
+  totalReviews: number | null;
+  certifications: Array<{ name: string; issuedBy: string }>;
 };
 
-type MatchCard = {
-  matchId: string;
+type OEMCard = {
   oemOrgId: string;
   name: string;
   slug: string | null;
@@ -70,7 +63,6 @@ type MatchCard = {
   rating: number | null;
   totalReviews: number | null;
   certifications: string[];
-  createdAt: string | null;
 };
 
 export default function Results() {
@@ -79,55 +71,92 @@ export default function Results() {
   const [moqRange, setMoqRange] = useState<[number, number]>([50, 10000]);
   const [selectedScale, setSelectedScale] = useState<string[]>([]);
   const [selectedCerts, setSelectedCerts] = useState<string[]>([]);
-  const { session } = useSupabase();
+  const { session, supabase } = useSupabase();
+
+  // Fetch buyer's organization ID and industry preference
+  const { data: buyerData } = useQuery<{
+    orgId: string;
+    industry: string | null;
+  } | null>({
+    queryKey: ["buyer-data", session?.user?.id],
+    queryFn: async () => {
+      if (!session?.user?.id) return null;
+
+      // Get the buyer's organization ID and industry from organization_members + organizations
+      const { data: membership, error: membershipError } = await supabase
+        .from("organization_members")
+        .select("organization_id, organizations(industry)")
+        .eq("profile_id", session.user.id)
+        .single();
+
+      if (membershipError) {
+        console.error("Failed to fetch buyer organization:", membershipError);
+        return null;
+      }
+
+      // @ts-expect-error - Supabase types are too strict here
+      const orgId = membership?.organization_id;
+      // @ts-expect-error - Supabase types are too strict here
+      const industry = membership?.organizations?.industry ?? null;
+
+      if (!orgId) return null;
+
+      return {
+        orgId,
+        industry,
+      };
+    },
+    enabled: Boolean(session?.user?.id),
+  });
 
   const {
-    data: matches = [],
+    data: oems = [],
     isLoading,
     error,
-  } = useQuery<MatchResponse[]>({
-    queryKey: ["buyer-matches"],
+  } = useQuery<OEMResponse[]>({
+    queryKey: ["oems-browse", buyerData?.industry],
     queryFn: async () => {
-      const response = await fetch("/api/matches");
+      const params = new URLSearchParams({ limit: "100" });
+      const industry = buyerData?.industry;
+      if (industry) {
+        params.set("industry", industry);
+      }
+      const url = `/api/oems?${params}`;
+      const response = await fetch(url);
       if (!response.ok) {
         const body = await response.json().catch(() => null);
-        throw new Error(body?.error?.message ?? "Unable to load matches");
+        throw new Error(body?.error?.message ?? "Unable to load OEMs");
       }
-      const body = (await response.json()) as { data: MatchResponse[] };
+      const body = (await response.json()) as { data: OEMResponse[] };
       return body.data ?? [];
     },
     enabled: Boolean(session),
   });
 
-  const cards: MatchCard[] = useMemo(() => {
-    return matches
-      .filter((match) => match.oem !== null)
-      .map((match) => {
-        const oem = match.oem!;
-        const scale =
-          oem.scale === "large"
-            ? "Large"
-            : oem.scale === "small"
-              ? "Small"
-              : "Medium";
-        return {
-          matchId: match.id,
-          oemOrgId: oem.organizationId,
-          name: oem.name,
-          slug: oem.slug,
-          industry: oem.industry,
-          location: oem.location,
-          scale,
-          moqMin: oem.moqMin,
-          moqMax: oem.moqMax,
-          crossBorder: Boolean(oem.crossBorder),
-          rating: oem.rating,
-          totalReviews: oem.totalReviews,
-          certifications: oem.certifications,
-          createdAt: match.createdAt,
-        };
-      });
-  }, [matches]);
+  const cards: OEMCard[] = useMemo(() => {
+    return oems.map((oem) => {
+      const scale: "Small" | "Medium" | "Large" =
+        oem.scale === "large"
+          ? "Large"
+          : oem.scale === "small"
+            ? "Small"
+            : "Medium";
+      return {
+        oemOrgId: oem.organizationId,
+        name: oem.name,
+        slug: oem.slug,
+        industry: oem.industry,
+        location: oem.location,
+        scale,
+        moqMin: oem.moqMin,
+        moqMax: oem.moqMax,
+        crossBorder: Boolean(oem.crossBorder),
+        rating: oem.rating,
+        totalReviews: oem.totalReviews,
+        certifications: oem.certifications.map((c) => c.name),
+      };
+    });
+  }, [oems]);
 
   const allCerts = useMemo(() => {
     const set = new Set<string>();
@@ -140,27 +169,28 @@ export default function Results() {
   const filtered = useMemo(() => {
     let list = cards.filter((o) => {
       const nameHit = o.name.toLowerCase().includes(search.toLowerCase());
+
+      // MOQ filter: Check if OEM's MOQ range overlaps with the selected range
       const moqHit =
         o.moqMin !== null && o.moqMax !== null
-          ? o.moqMin >= moqRange[0] && o.moqMax <= moqRange[1]
+          ? o.moqMin <= moqRange[1] && o.moqMax >= moqRange[0] // Ranges overlap
           : o.moqMin !== null
-            ? o.moqMin <= moqRange[1]
-            : true;
+            ? o.moqMin <= moqRange[1] // OEM min is within filter range
+            : true; // No MOQ data, so include it
+
       const scaleHit =
         selectedScale.length === 0 || selectedScale.includes(o.scale);
       const certHit =
         selectedCerts.length === 0 ||
         selectedCerts.every((c) => o.certifications.includes(c));
+
       return nameHit && moqHit && scaleHit && certHit;
     });
 
     switch (sortBy) {
       case "fastest":
-        list = [...list].sort(
-          (a, b) =>
-            (a.createdAt ? new Date(a.createdAt).getTime() : Infinity) -
-            (b.createdAt ? new Date(b.createdAt).getTime() : Infinity)
-        );
+        // For browsing OEMs, sort by rating (highest first)
+        list = [...list].sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0));
         break;
       case "lowest-moq":
         list = [...list].sort(
@@ -178,7 +208,7 @@ export default function Results() {
     return list;
   }, [cards, search, moqRange, selectedScale, selectedCerts, sortBy]);
 
-  const handleViewProfile = (card: MatchCard) => {
+  const handleViewProfile = (card: OEMCard) => {
     const target = card.slug ?? card.oemOrgId;
     window.location.href = ROUTES.oemProfile(target);
   };
@@ -365,7 +395,7 @@ export default function Results() {
                 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {filtered.map((oem) => (
                     <Card
-                      key={oem.matchId}
+                      key={oem.oemOrgId}
                       className="p-6 hover:shadow-lg transition-shadow"
                     >
                       <div className="space-y-4">
@@ -383,9 +413,7 @@ export default function Results() {
                           <div className="flex gap-2 flex-wrap">
                             <Badge variant="scale">{oem.scale}</Badge>
                             <Badge
-                              variant={getVerifiedBadgeVariant(
-                                "Verified"
-                              )}
+                              variant={getVerifiedBadgeVariant("Verified")}
                             >
                               <CheckCircle2 className="h-3 w-3 mr-1" />
                               Match
@@ -425,9 +453,7 @@ export default function Results() {
                             <span className="font-semibold text-foreground">
                               {oem.rating.toFixed(1)}
                             </span>
-                            <span>
-                              ({oem.totalReviews ?? 0} reviews)
-                            </span>
+                            <span>({oem.totalReviews ?? 0} reviews)</span>
                           </div>
                         )}
 
@@ -451,11 +477,7 @@ export default function Results() {
                         >
                           {COPY.ctas.viewProfile}
                         </Button>
-                        <Button
-                          variant="outline"
-                          className="w-full"
-                          asChild
-                        >
+                        <Button variant="outline" className="w-full" asChild>
                           <Link href={ROUTES.requestQuote(oem.oemOrgId)}>
                             <Rocket className="h-4 w-4 mr-2" />
                             {COPY.ctas.requestQuote}

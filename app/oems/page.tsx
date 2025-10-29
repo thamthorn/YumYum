@@ -24,37 +24,41 @@ import {
   MoreHorizontal,
   LucideIcon,
 } from "lucide-react";
-import { Industry, ROUTES, COPY, getScaleBadgeVariant, getVerifiedBadgeVariant } from "@/data/MockData";
-import type {
-  Database,
-  VerificationTier,
-  ScaleType,
-} from "@/types/database";
+import {
+  Industry,
+  ROUTES,
+  COPY,
+  getScaleBadgeVariant,
+  getVerifiedBadgeVariant,
+} from "@/data/MockData";
+import type { Database } from "@/types/database";
 
-type OemRow =
-  Database["public"]["Tables"]["oem_profiles"]["Row"] & {
-    organizations: {
-      id: string;
-      display_name: string;
-      industry: string | null;
-      location: string | null;
-      description: string | null;
-      website: string | null;
-      slug: string | null;
+type VerificationTier = Database["public"]["Enums"]["verification_tier"];
+type ScaleType = Database["public"]["Enums"]["scale_type"];
+
+type OemRow = Database["public"]["Tables"]["oem_profiles"]["Row"] & {
+  organizations: {
+    id: string;
+    display_name: string;
+    industry: string | null;
+    location: string | null;
+    description: string | null;
+    website: string | null;
+    slug: string | null;
+  } | null;
+  oem_services: Array<{
+    services: {
+      name: string | null;
     } | null;
-    oem_services: Array<{
-      services: {
-        name: string | null;
-      } | null;
-    }> | null;
-    oem_certifications: Array<{
-      verified: boolean | null;
-      verification_tier: VerificationTier | null;
-      certifications: {
-        name: string | null;
-      } | null;
-    }> | null;
-  };
+  }> | null;
+  oem_certifications: Array<{
+    verified: boolean | null;
+    verification_tier: VerificationTier | null;
+    certifications: {
+      name: string | null;
+    } | null;
+  }> | null;
+};
 
 type OemCard = {
   id: string;
@@ -96,10 +100,8 @@ export default function OEMList() {
   } = useQuery<OemRow[]>({
     queryKey: ["oems"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("oem_profiles")
-        .select(
-          `
+      const { data, error } = await supabase.from("oem_profiles").select(
+        `
             organization_id,
             scale,
             moq_min,
@@ -128,7 +130,7 @@ export default function OEMList() {
               )
             )
           `
-        );
+      );
 
       if (error) {
         throw error;
@@ -174,7 +176,9 @@ export default function OEMList() {
     };
 
     const filteredRows = selectedIndustry
-      ? oemRows.filter((row) => row.organizations?.industry === selectedIndustry)
+      ? oemRows.filter(
+          (row) => row.organizations?.industry === selectedIndustry
+        )
       : oemRows;
 
     return filteredRows
@@ -184,21 +188,21 @@ export default function OEMList() {
             ?.map((entry) => entry.services?.name ?? "")
             .filter((name): name is string => Boolean(name)) ?? [];
 
-      return {
-        id: row.organizations?.id ?? row.organization_id,
-        slug: row.organizations?.slug ?? null,
-        name: row.organizations?.display_name ?? "Unnamed OEM",
-        industry: row.organizations?.industry ?? null,
-        scale: row.scale ? scaleMap[row.scale] : "Medium",
-        moqMin: row.moq_min ?? 0,
-        moqMax: row.moq_max ?? null,
-        services,
-        location: row.organizations?.location ?? null,
-        crossBorder: Boolean(row.cross_border),
-        verification: resolveVerification(row.oem_certifications),
-        rating: row.rating,
-        totalReviews: row.total_reviews,
-      };
+        return {
+          id: row.organizations?.id ?? row.organization_id,
+          slug: row.organizations?.slug ?? null,
+          name: row.organizations?.display_name ?? "Unnamed OEM",
+          industry: row.organizations?.industry ?? null,
+          scale: row.scale ? scaleMap[row.scale] : "Medium",
+          moqMin: row.moq_min ?? 0,
+          moqMax: row.moq_max ?? null,
+          services,
+          location: row.organizations?.location ?? null,
+          crossBorder: Boolean(row.cross_border),
+          verification: resolveVerification(row.oem_certifications),
+          rating: row.rating,
+          totalReviews: row.total_reviews,
+        };
       })
       .sort((a, b) => a.name.localeCompare(b.name));
   }, [oemRows, selectedIndustry]);
@@ -209,7 +213,9 @@ export default function OEMList() {
         description: COPY.toasts.needLoginProfile,
       });
       const target = oem.slug ?? oem.id;
-      router.push(`${ROUTES.login}?next=${encodeURIComponent(ROUTES.oemProfile(target))}`);
+      router.push(
+        `${ROUTES.login}?next=${encodeURIComponent(ROUTES.oemProfile(target))}`
+      );
       return;
     }
 
@@ -391,7 +397,10 @@ export default function OEMList() {
                         </div>
 
                         {/* CTA */}
-                        <Button onClick={() => handleViewProfile(oem)} className="w-full">
+                        <Button
+                          onClick={() => handleViewProfile(oem)}
+                          className="w-full"
+                        >
                           {COPY.ctas.viewProfile}
                         </Button>
                       </div>

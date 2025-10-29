@@ -1,11 +1,12 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type {
-  Database,
-  RequestStatus,
-  Tables,
-  TablesInsert,
-} from "@/types/database";
+import type { Database } from "@/types/database";
 import { AppError } from "@/utils/errors";
+
+type RequestStatus = Database["public"]["Enums"]["request_status"];
+type Tables<T extends keyof Database["public"]["Tables"]> =
+  Database["public"]["Tables"][T]["Row"];
+type TablesInsert<T extends keyof Database["public"]["Tables"]> =
+  Database["public"]["Tables"][T]["Insert"];
 
 type RequestsTable = Tables<"requests">;
 type InsertRequest = TablesInsert<"requests">;
@@ -45,12 +46,7 @@ export const findRequests = async (
 ): Promise<RequestsTable[]> => {
   const { buyerOrgId, oemOrgId, statuses, memberOrgIds, limit = 20 } = filters;
 
-  if (
-    !buyerOrgId &&
-    !oemOrgId &&
-    memberOrgIds &&
-    memberOrgIds.length === 0
-  ) {
+  if (!buyerOrgId && !oemOrgId && memberOrgIds && memberOrgIds.length === 0) {
     return [];
   }
 

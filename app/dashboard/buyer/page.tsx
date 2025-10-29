@@ -20,8 +20,15 @@ import {
   MapPin,
   Zap,
   Target,
+  Building2,
+  FileText,
 } from "lucide-react";
-import { ROUTES, COPY, getMatchStatusVariant, getMatchStatusColor, getScaleBadgeVariant } from "@/data/MockData";
+import {
+  ROUTES,
+  COPY,
+  getMatchStatusVariant,
+  getScaleBadgeVariant,
+} from "@/data/MockData";
 import { useSupabase } from "@/lib/supabase/session-context";
 import { toast } from "sonner";
 
@@ -57,7 +64,9 @@ type MatchResponse = {
   id: string;
   status: string;
   score: number | null;
+  digest: Record<string, unknown> | null; // JSON from database
   createdAt: string | null;
+  updatedAt: string | null;
   oem: {
     organizationId: string;
     name: string;
@@ -67,7 +76,7 @@ type MatchResponse = {
     scale: "small" | "medium" | "large" | null;
     rating: number | null;
     totalReviews: number | null;
-    certifications: string[];
+    certifications: Array<{ name: string; issuedBy: string }>;
   } | null;
 };
 
@@ -223,7 +232,9 @@ function DashboardContent() {
                         <div className="flex-1">
                           <div className="flex items-center gap-3 mb-2">
                             <h3 className="text-lg font-semibold">
-                              {request.productBrief ?? request.title ?? "Request"}
+                              {request.productBrief ??
+                                request.title ??
+                                "Request"}
                             </h3>
                             <Badge
                               variant={
@@ -237,7 +248,9 @@ function DashboardContent() {
                               {request.status.replace(/_/g, " ")}
                             </Badge>
                             <Badge variant="scale">
-                              {request.type === "prototype" ? "Prototype" : "Quote"}
+                              {request.type === "prototype"
+                                ? "Prototype"
+                                : "Quote"}
                             </Badge>
                           </div>
                           <div className="flex items-center gap-4 text-sm text-muted-foreground mb-3">
@@ -269,7 +282,9 @@ function DashboardContent() {
                               <>
                                 <span>•</span>
                                 <span>
-                                  {new Date(request.createdAt).toLocaleDateString()}
+                                  {new Date(
+                                    request.createdAt
+                                  ).toLocaleDateString()}
                                 </span>
                               </>
                             )}
@@ -333,7 +348,9 @@ function DashboardContent() {
                                 <span className="font-semibold text-foreground">
                                   Shipping Terms
                                 </span>
-                                <p>{request.shippingTerms ?? "Not specified"}</p>
+                                <p>
+                                  {request.shippingTerms ?? "Not specified"}
+                                </p>
                               </div>
                               <div>
                                 <span className="font-semibold text-foreground">
@@ -372,7 +389,8 @@ function DashboardContent() {
                     <Badge variant="outline">
                       {
                         matches.filter(
-                          (m) => m.status === "new_match" || m.status === "New Match"
+                          (m) =>
+                            m.status === "new_match" || m.status === "New Match"
                         ).length
                       }{" "}
                       new
@@ -380,7 +398,9 @@ function DashboardContent() {
                     <Badge variant="outline">
                       {
                         matches.filter(
-                          (m) => m.status === "in_discussion" || m.status === "In Discussion"
+                          (m) =>
+                            m.status === "in_discussion" ||
+                            m.status === "In Discussion"
                         ).length
                       }{" "}
                       in discussion
@@ -394,7 +414,8 @@ function DashboardContent() {
                   </Card>
                 ) : matches.length === 0 ? (
                   <Card className="p-12 text-center text-muted-foreground">
-                    No matches yet. Complete onboarding to generate your matches.
+                    No matches yet. Complete onboarding to generate your
+                    matches.
                   </Card>
                 ) : (
                   matches
@@ -407,12 +428,57 @@ function DashboardContent() {
                           : oem.scale === "small"
                             ? "Small"
                             : "Medium";
+
+                      // Parse match reasons from digest field
+                      const matchReasons: string[] = [];
+                      if (match.digest) {
+                        try {
+                          // digest is already a JSON object from Supabase
+                          const digestData = match.digest as Record<
+                            string,
+                            unknown
+                          >;
+                          if (
+                            digestData.reasons &&
+                            Array.isArray(digestData.reasons)
+                          ) {
+                            matchReasons.push(...digestData.reasons);
+                          } else if (typeof digestData === "string") {
+                            matchReasons.push(digestData);
+                          }
+                        } catch (e) {
+                          console.warn("Failed to parse digest:", e);
+                        }
+                      }
+
+                      // Default reasons if none provided
+                      if (matchReasons.length === 0) {
+                        if (oem.industry) {
+                          matchReasons.push(
+                            `Industry expertise in ${oem.industry}`
+                          );
+                        }
+                        if (
+                          oem.certifications &&
+                          oem.certifications.length > 0
+                        ) {
+                          matchReasons.push(
+                            `Certified: ${oem.certifications.map((c) => c.name).join(", ")}`
+                          );
+                        }
+                        if (oem.scale) {
+                          matchReasons.push(
+                            `${scale}-scale manufacturer with proven capacity`
+                          );
+                        }
+                      }
+
                       return (
                         <Card
                           key={match.id}
                           className="p-6 hover:shadow-md transition-all"
                         >
-                          <div className="flex items-start justify-between">
+                          <div className="flex items-start justify-between mb-4">
                             <div className="flex-1">
                               <div className="flex items-center gap-3 mb-2">
                                 <h3 className="text-lg font-semibold">
@@ -429,41 +495,157 @@ function DashboardContent() {
                               </div>
 
                               <div className="flex items-center gap-4 text-sm text-muted-foreground mb-3">
-                                <span className={getMatchStatusColor(match.status)}>
-                                  Match score: {match.score ?? 100}%
+                                <span className="flex items-center gap-1 font-medium text-primary">
+                                  <Target className="h-4 w-4" />
+                                  {match.score ?? 100}% Match
                                 </span>
                                 {oem.location && (
                                   <>
                                     <span>•</span>
-                                    <span>
-                                      <MapPin className="inline h-3 w-3 mr-1" />
+                                    <span className="flex items-center gap-1">
+                                      <MapPin className="h-3 w-3" />
                                       {oem.location}
                                     </span>
                                   </>
                                 )}
                               </div>
+                            </div>
+                          </div>
 
-                              <div className="flex gap-2">
+                          {/* Why this match section */}
+                          {matchReasons.length > 0 && (
+                            <div className="mb-4 p-3 bg-muted/50 rounded-lg">
+                              <h4 className="text-sm font-semibold mb-2 flex items-center gap-2">
+                                <CheckCircle2 className="h-4 w-4 text-success" />
+                                Why this match
+                              </h4>
+                              <ul className="space-y-1.5">
+                                {matchReasons.slice(0, 3).map((reason, idx) => (
+                                  <li
+                                    key={idx}
+                                    className="text-sm text-muted-foreground flex items-start gap-2"
+                                  >
+                                    <CheckCircle2 className="h-3.5 w-3.5 text-success mt-0.5 shrink-0" />
+                                    <span>{reason}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+
+                          {/* Last Activity */}
+                          {match.updatedAt &&
+                            match.updatedAt !== match.createdAt && (
+                              <div className="mb-4 p-3 bg-muted/30 rounded-lg">
+                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                  <Clock className="h-4 w-4" />
+                                  <span>
+                                    Last activity:{" "}
+                                    {new Date(
+                                      match.updatedAt
+                                    ).toLocaleDateString()}
+                                  </span>
+                                </div>
+                              </div>
+                            )}
+
+                          {/* Action Buttons - Dynamic based on status */}
+                          <div className="flex gap-2">
+                            {(match.status === "new_match" ||
+                              match.status === "New Match") && (
+                              <>
                                 <Button size="sm" asChild>
                                   <Link
-                                    href={ROUTES.oemProfile(oem.slug ?? oem.organizationId)}
+                                    href={ROUTES.oemProfile(
+                                      oem.slug ?? oem.organizationId
+                                    )}
+                                  >
+                                    <Building2 className="h-4 w-4 mr-1" />
+                                    View Profile
+                                  </Link>
+                                </Button>
+                                <Button size="sm" variant="outline" asChild>
+                                  <Link href={ROUTES.messageThread(match.id)}>
+                                    <MessageSquare className="h-4 w-4 mr-1" />
+                                    Contact OEM
+                                  </Link>
+                                </Button>
+                              </>
+                            )}
+
+                            {match.status === "contacted" && (
+                              <>
+                                <Button size="sm" asChild>
+                                  <Link href={ROUTES.messageThread(match.id)}>
+                                    <MessageSquare className="h-4 w-4 mr-1" />
+                                    Continue Chat
+                                  </Link>
+                                </Button>
+                                <Button size="sm" variant="outline" asChild>
+                                  <Link
+                                    href={ROUTES.requestQuote(
+                                      oem.organizationId
+                                    )}
+                                  >
+                                    <FileText className="h-4 w-4 mr-1" />
+                                    Request Quote
+                                  </Link>
+                                </Button>
+                              </>
+                            )}
+
+                            {(match.status === "in_discussion" ||
+                              match.status === "In Discussion") && (
+                              <>
+                                <Button size="sm" asChild>
+                                  <Link
+                                    href={ROUTES.requestQuote(
+                                      oem.organizationId
+                                    )}
+                                  >
+                                    <Zap className="h-4 w-4 mr-1" />
+                                    Request Quote
+                                  </Link>
+                                </Button>
+                                <Button size="sm" variant="outline" asChild>
+                                  <Link href={ROUTES.messageThread(match.id)}>
+                                    <MessageSquare className="h-4 w-4 mr-1" />
+                                    View Messages
+                                  </Link>
+                                </Button>
+                              </>
+                            )}
+
+                            {/* Default fallback for other statuses */}
+                            {![
+                              "new_match",
+                              "New Match",
+                              "contacted",
+                              "in_discussion",
+                              "In Discussion",
+                            ].includes(match.status) && (
+                              <>
+                                <Button size="sm" asChild>
+                                  <Link
+                                    href={ROUTES.oemProfile(
+                                      oem.slug ?? oem.organizationId
+                                    )}
                                   >
                                     View Profile
                                   </Link>
                                 </Button>
                                 <Button size="sm" variant="outline" asChild>
                                   <Link
-                                    href={ROUTES.requestQuote(oem.organizationId)}
+                                    href={ROUTES.requestQuote(
+                                      oem.organizationId
+                                    )}
                                   >
                                     <Zap className="h-4 w-4 mr-1" />
                                     Request Quote
                                   </Link>
                                 </Button>
-                              </div>
-                            </div>
-                            <div className="text-right">
-                              <Target className="h-5 w-5 text-primary" />
-                            </div>
+                              </>
+                            )}
                           </div>
                         </Card>
                       );

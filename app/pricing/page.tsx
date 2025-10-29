@@ -1,11 +1,21 @@
-"use client";
-
 import Link from "next/link";
+import type { Metadata } from "next";
 import Navigation from "@/components/Navigation";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle2, Zap, Shield, Star } from "lucide-react";
+
+export const metadata: Metadata = {
+  title: "Pricing Plans | YUMYUM",
+  description:
+    "Choose the perfect plan for your manufacturing needs. Start free and upgrade as you grow. Compare our Free, Pro, and Partner plans.",
+  openGraph: {
+    title: "Pricing Plans | YUMYUM",
+    description:
+      "Choose the perfect plan for your manufacturing needs. Start free and upgrade as you grow.",
+  },
+};
 
 export default function Pricing() {
   const plans = [
@@ -125,15 +135,12 @@ export default function Pricing() {
               For Buyers & Brands
             </h2>
             <div className="grid lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
-              {plans.map((plan, index) => (
+              {plans.map((plan) => (
                 <Card
                   key={plan.name}
                   className={`p-8 relative animate-slide-up ${
                     plan.popular ? "border-2 border-primary shadow-xl" : ""
                   }`}
-                  style={{
-                    animationDelay: `${index * 100}ms` as unknown as string,
-                  }}
                 >
                   {plan.popular && (
                     <Badge className="absolute -top-3 left-1/2 -translate-x-1/2">
@@ -190,14 +197,8 @@ export default function Pricing() {
             </p>
 
             <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
-              {oemFeatures.map((tier, index) => (
-                <Card
-                  key={tier.tier}
-                  className="p-6 animate-scale-in"
-                  style={{
-                    animationDelay: `${index * 100}ms` as unknown as string,
-                  }}
-                >
+              {oemFeatures.map((tier) => (
+                <Card key={tier.tier} className="p-6 animate-scale-in">
                   <h3 className="text-xl font-bold mb-2">{tier.tier}</h3>
                   <div className="text-3xl font-bold text-primary mb-6">
                     {tier.price}

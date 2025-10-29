@@ -1,5 +1,8 @@
-import type { AccountRole, OrganizationType } from "@/types/database";
+import type { Database } from "@/types/database";
 import { ForbiddenError } from "@/utils/errors";
+
+type AccountRole = Database["public"]["Enums"]["account_role"];
+type OrganizationType = Database["public"]["Enums"]["organization_type"];
 
 export interface Membership {
   organizationId: string;

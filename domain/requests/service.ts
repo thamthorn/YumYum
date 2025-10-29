@@ -5,6 +5,7 @@ import {
   parseListRequestsParams,
 } from "@/domain/requests/schema";
 import * as repo from "@/domain/requests/repo";
+import { generateMatchesForRequest } from "@/domain/requests/matching";
 
 type RequestServiceContext = Pick<
   SupabaseRouteContext,
@@ -62,6 +63,24 @@ export const createRequest = async (
     },
     context.supabase
   );
+
+  // Generate matches for this request asynchronously (don't block response)
+  generateMatchesForRequest(
+    inserted.id,
+    {
+      buyerOrgId,
+      type: input.type,
+      productBrief: input.productBrief,
+      quantityMin: input.quantityMin,
+      quantityMax: input.quantityMax,
+      timeline: input.timeline,
+      shippingTerms: input.shippingTerms,
+    },
+    context as SupabaseRouteContext
+  ).catch((error) => {
+    console.error("Failed to generate matches for request:", error);
+    // Don't fail the request if matching fails
+  });
 
   return inserted;
 };

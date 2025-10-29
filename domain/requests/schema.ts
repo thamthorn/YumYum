@@ -1,8 +1,8 @@
 import { z } from "zod";
-import type {
-  RequestStatus as RequestStatusType,
-  RequestType as RequestTypeType,
-} from "@/types/database";
+import type { Database } from "@/types/database";
+
+type RequestStatusType = Database["public"]["Enums"]["request_status"];
+type RequestTypeType = Database["public"]["Enums"]["request_type"];
 
 export const REQUEST_STATUS_VALUES = [
   "draft",
@@ -16,8 +16,10 @@ export const REQUEST_STATUS_VALUES = [
   "cancelled",
 ] as const satisfies RequestStatusType[];
 
-export const REQUEST_TYPE_VALUES = ["quote", "prototype"] as const satisfies
-  RequestTypeType[];
+export const REQUEST_TYPE_VALUES = [
+  "quote",
+  "prototype",
+] as const satisfies RequestTypeType[];
 
 export const createRequestSchema = z
   .object({

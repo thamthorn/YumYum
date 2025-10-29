@@ -2,15 +2,12 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import Navigation from "@/components/Navigation";
+import ReviewsList from "@/components/ReviewsList";
+import CreateReviewDialog from "@/components/CreateReviewDialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Factory,
   MapPin,
@@ -25,7 +22,12 @@ import {
   MessageSquare,
 } from "lucide-react";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { COPY, getScaleBadgeVariant, getVerifiedBadgeVariant, OEMS } from "@/data/MockData";
+import {
+  COPY,
+  getScaleBadgeVariant,
+  getVerifiedBadgeVariant,
+  OEMS,
+} from "@/data/MockData";
 import type { Database } from "@/types/database";
 
 type VerificationTier = Database["public"]["Enums"]["verification_tier"];
@@ -115,38 +117,31 @@ export default async function OEMProfile({
     )
   `;
 
-  type ProfileWithRelations = Database["public"]["Tables"]["oem_profiles"]["Row"] & {
-    organizations: Database["public"]["Tables"]["organizations"]["Row"];
-    oem_services:
-      | Array<{
-          services: { name: string | null } | null;
-        }>
-      | null;
-    oem_certifications:
-      | Array<{
-          verification_tier:
-            | Database["public"]["Enums"]["verification_tier"]
-            | null;
-          certifications: { name: string | null } | null;
-        }>
-      | null;
-    oem_languages:
-      | Array<
-          Pick<
-            Database["public"]["Tables"]["oem_languages"]["Row"],
-            "language_code" | "proficiency"
-          >
+  type ProfileWithRelations =
+    Database["public"]["Tables"]["oem_profiles"]["Row"] & {
+      organizations: Database["public"]["Tables"]["organizations"]["Row"];
+      oem_services: Array<{
+        services: { name: string | null } | null;
+      }> | null;
+      oem_certifications: Array<{
+        verification_tier:
+          | Database["public"]["Enums"]["verification_tier"]
+          | null;
+        certifications: { name: string | null } | null;
+      }> | null;
+      oem_languages: Array<
+        Pick<
+          Database["public"]["Tables"]["oem_languages"]["Row"],
+          "language_code" | "proficiency"
         >
-      | null;
-    oem_previous_products:
-      | Array<
-          Pick<
-            Database["public"]["Tables"]["oem_previous_products"]["Row"],
-            "id" | "title" | "image_url" | "tags" | "note"
-          >
+      > | null;
+      oem_previous_products: Array<
+        Pick<
+          Database["public"]["Tables"]["oem_previous_products"]["Row"],
+          "id" | "title" | "image_url" | "tags" | "note"
         >
-      | null;
-  };
+      > | null;
+    };
 
   type OrganizationSlugLookup = Pick<
     Database["public"]["Tables"]["organizations"]["Row"],
@@ -169,7 +164,8 @@ export default async function OEMProfile({
   };
 
   const fetchProfileBySlug = async (slugValue: string) => {
-    const slugFilter: Database["public"]["Tables"]["organizations"]["Row"]["slug"] = slugValue;
+    const slugFilter: Database["public"]["Tables"]["organizations"]["Row"]["slug"] =
+      slugValue;
     const { data: organizationResult, error: slugLookupError } = await supabase
       .from("organizations")
       .select("id")
@@ -180,7 +176,8 @@ export default async function OEMProfile({
       return { data: null, error: slugLookupError };
     }
 
-    const organization = organizationResult as unknown as OrganizationSlugLookup;
+    const organization =
+      organizationResult as unknown as OrganizationSlugLookup;
 
     return fetchProfileByOrganizationId(organization.id);
   };
@@ -230,19 +227,16 @@ export default async function OEMProfile({
       ?.map((entry) => entry.certifications?.name ?? "")
       .filter((name): name is string => Boolean(name)) ?? [];
   const highestTier: VerificationTier =
-    profile.oem_certifications?.reduce<VerificationTier>(
-      (acc, entry) => {
-        const value = entry.verification_tier ?? "none";
-        const order: VerificationTier[] = [
-          "trusted_partner",
-          "certified",
-          "verified",
-          "none",
-        ];
-        return order.indexOf(value) < order.indexOf(acc) ? value : acc;
-      },
-      "none"
-    ) ?? "none";
+    profile.oem_certifications?.reduce<VerificationTier>((acc, entry) => {
+      const value = entry.verification_tier ?? "none";
+      const order: VerificationTier[] = [
+        "trusted_partner",
+        "certified",
+        "verified",
+        "none",
+      ];
+      return order.indexOf(value) < order.indexOf(acc) ? value : acc;
+    }, "none") ?? "none";
 
   const previousProducts = profile.oem_previous_products ?? [];
   const languages =
@@ -274,7 +268,11 @@ export default async function OEMProfile({
                       {organization.display_name}
                     </h1>
                     {highestTier !== "none" && (
-                      <Badge variant={getVerifiedBadgeVariant(verificationLabel[highestTier])}>
+                      <Badge
+                        variant={getVerifiedBadgeVariant(
+                          verificationLabel[highestTier]
+                        )}
+                      >
                         <CheckCircle2 className="h-3 w-3 mr-1" />
                         {verificationLabel[highestTier]}
                       </Badge>
@@ -285,12 +283,18 @@ export default async function OEMProfile({
                       <Factory className="h-3 w-3" /> {readableScale}
                     </Badge>
                     {organization.location && (
-                      <Badge variant="scale" className="flex items-center gap-1">
+                      <Badge
+                        variant="scale"
+                        className="flex items-center gap-1"
+                      >
                         <MapPin className="h-3 w-3" /> {organization.location}
                       </Badge>
                     )}
                     {organization.established_year && (
-                      <Badge variant="scale" className="flex items-center gap-1">
+                      <Badge
+                        variant="scale"
+                        className="flex items-center gap-1"
+                      >
                         <Calendar className="h-3 w-3" /> Est.{" "}
                         {organization.established_year}
                       </Badge>
@@ -303,9 +307,7 @@ export default async function OEMProfile({
                         <span className="font-semibold text-foreground">
                           {profile.rating.toFixed(1)}
                         </span>
-                        <span>
-                          ({profile.total_reviews ?? 0} reviews)
-                        </span>
+                        <span>({profile.total_reviews ?? 0} reviews)</span>
                       </div>
                     )}
                     {profile.response_time_hours && (
@@ -347,9 +349,7 @@ export default async function OEMProfile({
               </div>
               <div className="text-lg font-semibold">
                 {profile.moq_min?.toLocaleString() ?? 0}
-                {profile.moq_max
-                  ? `–${profile.moq_max.toLocaleString()}`
-                  : "+"}
+                {profile.moq_max ? `–${profile.moq_max.toLocaleString()}` : "+"}
               </div>
             </Card>
             {profile.lead_time_days && (
@@ -399,7 +399,9 @@ export default async function OEMProfile({
               <Card className="p-6">
                 <h2 className="text-2xl font-semibold mb-4">About</h2>
                 <p className="text-muted-foreground leading-relaxed">
-                  {profile.short_description ?? organization.description ?? "Details coming soon."}
+                  {profile.short_description ??
+                    organization.description ??
+                    "Details coming soon."}
                 </p>
               </Card>
 
@@ -416,14 +418,12 @@ export default async function OEMProfile({
 
               {services.length > 0 && (
                 <Card className="p-6">
-                  <h2 className="text-2xl font-semibold mb-4">
-                    Key Services
-                  </h2>
-                <div className="grid md:grid-cols-2 gap-4">
-                  {services.map((service) => (
-                    <div key={service} className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-lg bg-success/10 flex items-center justify-center">
-                        <CheckCircle2 className="h-5 w-5 text-success" />
+                  <h2 className="text-2xl font-semibold mb-4">Key Services</h2>
+                  <div className="grid md:grid-cols-2 gap-4">
+                    {services.map((service) => (
+                      <div key={service} className="flex items-center gap-3">
+                        <div className="h-10 w-10 rounded-lg bg-success/10 flex items-center justify-center">
+                          <CheckCircle2 className="h-5 w-5 text-success" />
                         </div>
                         <div className="font-semibold">{service}</div>
                       </div>
@@ -479,7 +479,11 @@ export default async function OEMProfile({
                         {product.tags && product.tags.length > 0 && (
                           <div className="flex flex-wrap gap-1">
                             {product.tags.map((tag) => (
-                              <Badge key={tag} variant="secondary" className="text-xs">
+                              <Badge
+                                key={tag}
+                                variant="secondary"
+                                className="text-xs"
+                              >
                                 {tag}
                               </Badge>
                             ))}
@@ -519,10 +523,20 @@ export default async function OEMProfile({
               )}
             </TabsContent>
 
-            <TabsContent value="reviews">
-              <Card className="p-12 text-center text-muted-foreground">
-                Reviews are coming soon.
-              </Card>
+            <TabsContent value="reviews" className="space-y-4">
+              <div className="flex justify-end">
+                <CreateReviewDialog
+                  oemOrgId={organization.id}
+                  oemName={organization.display_name}
+                >
+                  <Button>Write a Review</Button>
+                </CreateReviewDialog>
+              </div>
+              <ReviewsList
+                oemOrgId={organization.id}
+                initialRating={profile.rating || 0}
+                initialTotalReviews={profile.total_reviews || 0}
+              />
             </TabsContent>
           </Tabs>
         </div>

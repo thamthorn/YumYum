@@ -2,8 +2,10 @@ import type { Session, SupabaseClient } from "@supabase/supabase-js";
 import { createSupabaseRouteClient } from "@/lib/supabase/route-handler";
 import { AppError, AuthError } from "@/utils/errors";
 import { Authorizer, type Membership } from "@/lib/auth/authorizer";
-import type { AccountRole, OrganizationType, Database } from "@/types/database";
+import type { Database } from "@/types/database";
 
+type AccountRole = Database["public"]["Enums"]["account_role"];
+type OrganizationType = Database["public"]["Enums"]["organization_type"];
 type RouteSupabaseClient = SupabaseClient<Database>;
 
 const fetchMemberships = async (
@@ -22,12 +24,11 @@ const fetchMemberships = async (
     });
   }
 
-  const rows =
-    (data ?? []) as unknown as Array<{
-      organization_id: string;
-      role_in_org: string;
-      organizations: { type: OrganizationType } | null;
-    }>;
+  const rows = (data ?? []) as unknown as Array<{
+    organization_id: string;
+    role_in_org: string;
+    organizations: { type: OrganizationType } | null;
+  }>;
 
   return rows.map((row) => ({
     organizationId: row.organization_id,

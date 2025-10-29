@@ -174,16 +174,17 @@ From `docs/supabase-schema.md`, here's what's implemented in the database:
 
 ### Bug Reports
 
-- ✅ `LOGIC_BUGS.md` - Comprehensive logic bug analysis (7 bugs found, 2 fixed)
+- ✅ `LOGIC_BUGS.md` - Comprehensive logic bug analysis (7 bugs found, 3 fixed)
 
 ### Fixed Issues
 
+- ✅ **Industry Validation** - Added industry match validation to calculateMatchScore function
 - ✅ **MOQ Scoring Logic** - Fixed edge cases in matching algorithm
 - ✅ **Transaction Rollback** - Added rollback logic to buyer onboarding
 
 ### Remaining Issues
 
-- ⚠️ 2 Critical bugs (duplicate reviews, industry scoring)
+- ⚠️ 1 Critical bug (duplicate reviews - allows multiple reviews per OEM)
 - ⚠️ 1 High priority bug (helpful vote race condition - requires migration)
 - ⚠️ 2 Medium priority bugs (scale scoring, location matching)
 

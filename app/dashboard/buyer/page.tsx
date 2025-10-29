@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Suspense, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import Navigation from "@/components/Navigation";
 import ProtectedClient from "@/components/ProtectedClient";
 import { Button } from "@/components/ui/button";
@@ -22,6 +22,7 @@ import {
   Target,
   Building2,
   FileText,
+  Trash2,
 } from "lucide-react";
 import {
   ROUTES,
@@ -82,6 +83,7 @@ type MatchResponse = {
 
 function DashboardContent() {
   const { session } = useSupabase();
+  const queryClient = useQueryClient();
 
   const [activeRequestId, setActiveRequestId] = useState<string | null>(null);
 
@@ -120,6 +122,42 @@ function DashboardContent() {
     },
     enabled: Boolean(session),
   });
+
+  // Clear matches mutation
+  const clearMatchesMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch("/api/matches", {
+        method: "DELETE",
+      });
+      if (!response.ok) {
+        const body = await response.json().catch(() => null);
+        throw new Error(body?.error?.message ?? "Failed to clear matches");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["buyer-matches"] });
+      toast.success("All matches cleared successfully");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const handleClearMatches = () => {
+    if (matches.length === 0) {
+      toast.info("No matches to clear");
+      return;
+    }
+
+    if (
+      confirm(
+        `Are you sure you want to clear all ${matches.length} matches? This action cannot be undone.`
+      )
+    ) {
+      clearMatchesMutation.mutate();
+    }
+  };
 
   if (requestError) {
     toast.error(requestError.message);
@@ -381,10 +419,26 @@ function DashboardContent() {
 
               <TabsContent value="matches" className="space-y-4">
                 <div className="mb-6">
-                  <p className="text-muted-foreground mb-4">
-                    Based on your requirements and preferences, we&apos;ve found{" "}
-                    {matches.length} potential OEM partners.
-                  </p>
+                  <div className="flex items-center justify-between mb-4">
+                    <p className="text-muted-foreground">
+                      Based on your requirements and preferences, we&apos;ve
+                      found {matches.length} potential OEM partners.
+                    </p>
+                    {matches.length > 0 && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleClearMatches}
+                        disabled={clearMatchesMutation.isPending}
+                        className="text-destructive hover:text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        {clearMatchesMutation.isPending
+                          ? "Clearing..."
+                          : "Clear All Matches"}
+                      </Button>
+                    )}
+                  </div>
                   <div className="flex gap-2">
                     <Badge variant="outline">
                       {

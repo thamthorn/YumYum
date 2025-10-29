@@ -26,10 +26,21 @@ export function SupabaseProvider({
   useEffect(() => {
     let mounted = true;
 
-    supabase.auth.getSession().then(({ data }) => {
+    // Use getUser() for secure initial authentication
+    supabase.auth.getUser().then(({ data }) => {
       if (!mounted) return;
-      setSession(data.session);
-      setIsLoading(false);
+      
+      // If user exists, get the session for the session state
+      if (data.user) {
+        supabase.auth.getSession().then(({ data: sessionData }) => {
+          if (!mounted) return;
+          setSession(sessionData.session);
+          setIsLoading(false);
+        });
+      } else {
+        setSession(null);
+        setIsLoading(false);
+      }
     });
 
     const {

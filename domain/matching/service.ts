@@ -40,8 +40,27 @@ export function calculateMatchScore(
   const reasons: string[] = [];
 
   // 1. Industry match (40 points - base requirement)
-  score += 40;
-  reasons.push(`Industry expertise in ${criteria.industry}`);
+  // Validate that OEM's industry actually matches criteria
+  const oemIndustry = oem.organizations?.industry?.toLowerCase() || "";
+  const criteriaIndustry = criteria.industry.toLowerCase();
+
+  if (oemIndustry === criteriaIndustry) {
+    score += 40;
+    reasons.push(`Industry expertise in ${criteria.industry}`);
+  } else {
+    // Industry mismatch - this should rarely happen if query filtering works correctly
+    // but we validate here to make the function self-contained
+    score += 0;
+    reasons.push(
+      `Industry mismatch: OEM specializes in ${oem.organizations?.industry || "unknown"}, not ${criteria.industry}`
+    );
+    // Log warning for debugging - this suggests query filter might be broken
+    console.warn("calculateMatchScore called with non-matching industry", {
+      oemId: oem.organization_id,
+      oemIndustry: oem.organizations?.industry,
+      criteriaIndustry: criteria.industry,
+    });
+  }
 
   // 2. MOQ compatibility (25 points)
   if (criteria.moqMin !== undefined && criteria.moqMax !== undefined) {

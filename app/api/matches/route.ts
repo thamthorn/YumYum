@@ -180,3 +180,59 @@ export const GET = withErrorHandling(async (request: Request) => {
 
   return jsonResponse({ data });
 });
+
+/**
+ * DELETE /api/matches - Clear all matches for buyer
+ */
+export const DELETE = withErrorHandling(async (request: Request) => {
+  const context = await createSupabaseRouteContext();
+  const url = new URL(request.url);
+  const requestedOrgId = url.searchParams.get("buyerOrgId");
+
+  let buyerOrgId = requestedOrgId;
+
+  if (buyerOrgId) {
+    context.authorizer.ensureMembership(buyerOrgId);
+  } else {
+    const buyerMembership = context.authorizer
+      .listMemberships()
+      .find((member) => member.organizationType === "buyer");
+    if (!buyerMembership) {
+      throw new AppError("No buyer organization associated with this account", {
+        status: 404,
+        code: "buyer_org_not_found",
+      });
+    }
+    buyerOrgId = buyerMembership.organizationId;
+  }
+
+  const { supabase } = context;
+
+  if (!buyerOrgId) {
+    throw new AppError("Unable to determine buyer organization", {
+      status: 400,
+      code: "buyer_org_missing",
+    });
+  }
+
+  const buyerOrgIdFilter: Database["public"]["Tables"]["matches"]["Row"]["buyer_org_id"] =
+    buyerOrgId;
+
+  // Delete all matches for this buyer
+  const { error: deleteError } = await supabase
+    .from("matches")
+    .delete()
+    .eq("buyer_org_id", buyerOrgIdFilter);
+
+  if (deleteError) {
+    throw new AppError("Failed to clear matches", {
+      cause: deleteError,
+      code: "matches_clear_failed",
+    });
+  }
+
+  return jsonResponse({
+    success: true,
+    message: "All matches cleared successfully",
+  });
+});

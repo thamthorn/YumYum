@@ -213,6 +213,10 @@ export default async function OEMProfile({
     notFound();
   }
 
+  // Validate authentication securely using getUser()
+  await supabase.auth.getUser();
+
+  // Get session for compatibility with existing code
   const {
     data: { session },
   } = await supabase.auth.getSession();

@@ -70,23 +70,33 @@ export const createSupabaseRouteContext =
     const rawSupabase = await createSupabaseRouteClient();
     const supabase = rawSupabase as unknown as RouteSupabaseClient;
 
+    // Use getUser() for secure authentication (validates with Supabase Auth server)
     const {
-      data: { session },
-      error,
-    } = await supabase.auth.getSession();
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
 
-    if (error) {
-      throw new AppError("Failed to resolve session", {
-        cause: error,
-        code: "session_resolve_failed",
+    if (userError) {
+      throw new AppError("Failed to authenticate user", {
+        cause: userError,
+        code: "user_auth_failed",
       });
     }
+
+    if (!user) {
+      throw new AuthError();
+    }
+
+    // Get session for compatibility (but user is already authenticated above)
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
 
     if (!session) {
       throw new AuthError();
     }
 
-    const profileId = session.user.id;
+    const profileId = user.id;
     const [role, memberships] = await Promise.all([
       fetchProfileRole(supabase, profileId),
       fetchMemberships(supabase, profileId),

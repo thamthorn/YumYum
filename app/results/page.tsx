@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -30,6 +30,8 @@ import {
   Rocket,
   CheckCircle2,
   Package,
+  Wand2,
+  Sparkles,
 } from "lucide-react";
 import { useSupabase } from "@/lib/supabase/session-context";
 import { toast } from "sonner";
@@ -63,6 +65,27 @@ type OEMCard = {
   rating: number | null;
   totalReviews: number | null;
   certifications: string[];
+  aiRank?: number;
+  aiScore?: number;
+  matchReasons?: string[];
+};
+
+type AiResult = {
+  organizationId: string;
+  name: string;
+  slug?: string | null;
+  industry?: string | null;
+  location?: string | null;
+  scale?: "small" | "medium" | "large";
+  moqMin?: number | null;
+  moqMax?: number | null;
+  crossBorder?: boolean;
+  rating?: number | null;
+  totalReviews?: number | null;
+  certifications?: Array<{ name: string }>;
+  aiRank?: number;
+  aiScore?: number;
+  matchReasons?: string[];
 };
 
 export default function Results() {
@@ -71,7 +94,31 @@ export default function Results() {
   const [moqRange, setMoqRange] = useState<[number, number]>([50, 10000]);
   const [selectedScale, setSelectedScale] = useState<string[]>([]);
   const [selectedCerts, setSelectedCerts] = useState<string[]>([]);
+  const [aiResults, setAiResults] = useState<AiResult[]>([]);
+  const [searchMode, setSearchMode] = useState<string>("");
   const { session, supabase } = useSupabase();
+
+  // Check for AI search results from sessionStorage
+  useEffect(() => {
+    const mode = sessionStorage.getItem("searchMode");
+    setSearchMode(mode || "");
+
+    if (mode === "ai") {
+      const results = sessionStorage.getItem("aiSearchResults");
+      if (results) {
+        try {
+          const parsed = JSON.parse(results);
+          setAiResults(parsed);
+          setSortBy("ai-rank"); // Set sort to AI ranking
+          // Clear from storage after loading
+          sessionStorage.removeItem("aiSearchResults");
+          sessionStorage.removeItem("searchMode");
+        } catch (e) {
+          console.error("Failed to parse AI results:", e);
+        }
+      }
+    }
+  }, []);
 
   // Fetch buyer's organization ID and industry preference
   const { data: buyerData } = useQuery<{
@@ -134,6 +181,36 @@ export default function Results() {
   });
 
   const cards: OEMCard[] = useMemo(() => {
+    // If we have AI results, use those instead
+    if (aiResults.length > 0) {
+      return aiResults.map((result) => {
+        const scale: "Small" | "Medium" | "Large" =
+          result.scale === "large"
+            ? "Large"
+            : result.scale === "small"
+              ? "Small"
+              : "Medium";
+        return {
+          oemOrgId: result.organizationId,
+          name: result.name,
+          slug: result.slug ?? null,
+          industry: result.industry ?? null,
+          location: result.location ?? null,
+          scale,
+          moqMin: result.moqMin ?? null,
+          moqMax: result.moqMax ?? null,
+          crossBorder: result.crossBorder ?? false,
+          rating: result.rating ?? null,
+          totalReviews: result.totalReviews ?? null,
+          certifications: result.certifications?.map((c) => c.name) || [],
+          aiRank: result.aiRank,
+          aiScore: result.aiScore,
+          matchReasons: result.matchReasons,
+        };
+      });
+    }
+
+    // Otherwise use regular OEM data
     return oems.map((oem) => {
       const scale: "Small" | "Medium" | "Large" =
         oem.scale === "large"
@@ -156,7 +233,7 @@ export default function Results() {
         certifications: oem.certifications.map((c) => c.name),
       };
     });
-  }, [oems]);
+  }, [oems, aiResults]);
 
   const allCerts = useMemo(() => {
     const set = new Set<string>();
@@ -188,6 +265,10 @@ export default function Results() {
     });
 
     switch (sortBy) {
+      case "ai-rank":
+        // Sort by AI ranking (already sorted, but ensure)
+        list = [...list].sort((a, b) => (a.aiRank ?? 999) - (b.aiRank ?? 999));
+        break;
       case "fastest":
         // For browsing OEMs, sort by rating (highest first)
         list = [...list].sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0));
@@ -244,11 +325,21 @@ export default function Results() {
       <div className="pt-24 pb-12">
         <div className="container mx-auto">
           <div className="mb-8 animate-fade-in">
-            <h1 className="text-4xl font-bold mb-2">Your OEM Matches</h1>
+            <div className="flex items-center gap-3 mb-2">
+              <h1 className="text-4xl font-bold">Your OEM Matches</h1>
+              {searchMode === "ai" && (
+                <Badge className="bg-purple-500 text-white">
+                  <Wand2 className="h-3 w-3 mr-1" />
+                  AI Powered
+                </Badge>
+              )}
+            </div>
             <p className="text-muted-foreground">
               {isLoading
                 ? "Finding matching manufacturers..."
-                : `Found ${filtered.length} manufacturers that match your criteria`}
+                : searchMode === "ai"
+                  ? `AI found ${filtered.length} perfect matches for you`
+                  : `Found ${filtered.length} manufacturers that match your criteria`}
             </p>
           </div>
 
@@ -404,11 +495,18 @@ export default function Results() {
                             <h3 className="font-semibold text-lg">
                               {oem.name}
                             </h3>
-                            {oem.scale === "Large" ? (
-                              <Factory className="h-5 w-5 text-primary" />
-                            ) : (
-                              <Home className="h-5 w-5 text-muted-foreground" />
-                            )}
+                            <div className="flex items-center gap-2">
+                              {oem.aiRank && (
+                                <Badge className="bg-purple-500 text-white text-xs">
+                                  #{oem.aiRank}
+                                </Badge>
+                              )}
+                              {oem.scale === "Large" ? (
+                                <Factory className="h-5 w-5 text-primary" />
+                              ) : (
+                                <Home className="h-5 w-5 text-muted-foreground" />
+                              )}
+                            </div>
                           </div>
                           <div className="flex gap-2 flex-wrap">
                             <Badge variant="scale">{oem.scale}</Badge>
@@ -418,8 +516,39 @@ export default function Results() {
                               <CheckCircle2 className="h-3 w-3 mr-1" />
                               Match
                             </Badge>
+                            {oem.aiScore && (
+                              <Badge
+                                variant="outline"
+                                className="text-purple-600 border-purple-300"
+                              >
+                                <Sparkles className="h-3 w-3 mr-1" />
+                                {oem.aiScore}% Match
+                              </Badge>
+                            )}
                           </div>
                         </div>
+
+                        {oem.matchReasons && oem.matchReasons.length > 0 && (
+                          <div className="bg-purple-50 dark:bg-purple-950/20 border border-purple-200 dark:border-purple-800 rounded-lg p-3">
+                            <div className="flex items-center gap-2 mb-2">
+                              <Wand2 className="h-3.5 w-3.5 text-purple-600" />
+                              <span className="text-xs font-semibold text-purple-700 dark:text-purple-400">
+                                AI Match Reasons
+                              </span>
+                            </div>
+                            <ul className="space-y-1">
+                              {oem.matchReasons.map((reason, idx) => (
+                                <li
+                                  key={idx}
+                                  className="text-xs text-purple-800 dark:text-purple-300 flex items-start gap-1.5"
+                                >
+                                  <CheckCircle2 className="h-3 w-3 text-purple-600 mt-0.5 shrink-0" />
+                                  <span>{reason}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
 
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
                           <MapPin className="h-4 w-4" />

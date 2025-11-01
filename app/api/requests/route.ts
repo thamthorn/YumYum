@@ -72,8 +72,23 @@ export const GET = withErrorHandling(async (request: Request) => {
     profileMap.set(profile.organization_id, profile);
   });
 
+  // Fetch files for all requests
+  const requestIds = requests.map((r) => r.id);
+  const { data: requestFiles } = await supabase
+    .from("request_files")
+    .select("id, request_id, path, mime_type, size_bytes")
+    .in("request_id", requestIds);
+
+  const filesMap = new Map<string, typeof requestFiles>();
+  requestFiles?.forEach((file) => {
+    const existing = filesMap.get(file.request_id) ?? [];
+    filesMap.set(file.request_id, [...existing, file]);
+  });
+
   const response = requests.map((request) => {
     const profile = profileMap.get(request.oem_org_id ?? "");
+    const files = filesMap.get(request.id) ?? [];
+
     return {
       id: request.id,
       status: request.status,
@@ -92,6 +107,12 @@ export const GET = withErrorHandling(async (request: Request) => {
       createdAt: request.created_at,
       buyerOrgId: request.buyer_org_id,
       oemOrgId: request.oem_org_id,
+      files: files.map((f) => ({
+        id: f.id,
+        path: f.path,
+        mimeType: f.mime_type,
+        sizeBytes: f.size_bytes,
+      })),
       oem: profile
         ? {
             id: profile.organizations?.id ?? profile.organization_id,

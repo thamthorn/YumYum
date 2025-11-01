@@ -63,6 +63,7 @@ export interface SupabaseRouteContext {
   session: Session;
   authorizer: Authorizer;
   role: AccountRole;
+  userId: string; // Authenticated user ID from getUser()
 }
 
 export const createSupabaseRouteContext =
@@ -113,5 +114,6 @@ export const createSupabaseRouteContext =
       session,
       authorizer,
       role,
+      userId: profileId, // Use the authenticated user ID from getUser()
     };
   };

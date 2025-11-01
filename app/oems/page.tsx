@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -82,6 +82,7 @@ const industries: { value: Industry; label: string; icon: LucideIcon }[] = [
   { value: "Cosmetics", label: "Cosmetics", icon: Sparkles },
   { value: "Dental/Medical", label: "Dental/Medical", icon: Stethoscope },
   { value: "Education", label: "Education", icon: GraduationCap },
+  { value: "Packaging", label: "Packaging & Materials", icon: Package },
   { value: "Other", label: "Other", icon: MoreHorizontal },
 ];
 
@@ -89,9 +90,21 @@ export default function OEMList() {
   const [selectedIndustry, setSelectedIndustry] = useState<Industry | null>(
     null
   );
+  const listRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
   const { toast } = useToast();
   const { session, supabase } = useSupabase();
+
+  const handleIndustrySelect = (industry: Industry) => {
+    setSelectedIndustry(industry);
+    // Scroll to the list after a short delay to ensure content is rendered
+    setTimeout(() => {
+      listRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    }, 100);
+  };
 
   const {
     data: oemRows = [],
@@ -253,7 +266,7 @@ export default function OEMList() {
                 return (
                   <button
                     key={industry.value}
-                    onClick={() => setSelectedIndustry(industry.value)}
+                    onClick={() => handleIndustrySelect(industry.value)}
                     className={`p-6 rounded-2xl border-2 transition-all hover:shadow-lg ${
                       selectedIndustry === industry.value
                         ? "border-primary bg-primary/5 shadow-md"
@@ -288,7 +301,7 @@ export default function OEMList() {
 
           {/* OEM List */}
           {selectedIndustry && (
-            <div className="animate-fade-in">
+            <div ref={listRef} className="animate-fade-in scroll-mt-24">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-2xl font-semibold">
                   {industries.find((i) => i.value === selectedIndustry)?.label}{" "}

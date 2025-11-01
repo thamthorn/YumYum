@@ -48,18 +48,11 @@ export function calculateMatchScore(
     score += 40;
     reasons.push(`Industry expertise in ${criteria.industry}`);
   } else {
-    // Industry mismatch - this should rarely happen if query filtering works correctly
-    // but we validate here to make the function self-contained
+    // This should not happen after filtering, but keeping as safety
     score += 0;
     reasons.push(
       `Industry mismatch: OEM specializes in ${oem.organizations?.industry || "unknown"}, not ${criteria.industry}`
     );
-    // Log warning for debugging - this suggests query filter might be broken
-    console.warn("calculateMatchScore called with non-matching industry", {
-      oemId: oem.organization_id,
-      oemIndustry: oem.organizations?.industry,
-      criteriaIndustry: criteria.industry,
-    });
   }
 
   // 2. MOQ compatibility (25 points)
@@ -198,11 +191,11 @@ export async function findMatchingOems(
         )
       `
     )
-    .filter("organizations.industry", "eq", criteria.industry)
+    .eq("organizations.industry", criteria.industry) // Exact match
     .limit(limit);
 
   if (matchFetchError) {
-    console.error("matching_fetch_failed", matchFetchError);
+    console.error("❌ matching_fetch_failed", matchFetchError);
     throw new AppError("Failed to locate matching OEMs", {
       cause: matchFetchError,
       code: "matching_fetch_failed",
@@ -211,17 +204,33 @@ export async function findMatchingOems(
 
   const oemRows = (matchingOems ?? []) as unknown as MatchingOemRow[];
 
-  console.log(
-    `Found ${oemRows.length} OEMs for industry "${criteria.industry}"`
-  );
+  // Filter out any OEMs that don't actually match the industry (extra safety check)
+  const validOems = oemRows.filter((oem) => {
+    const oemIndustry = oem.organizations?.industry?.toLowerCase() || "";
+    const criteriaIndustry = criteria.industry.toLowerCase();
+    return oemIndustry === criteriaIndustry;
+  });
+
+  if (validOems.length < oemRows.length) {
+    console.warn(
+      `⚠️ Filtered out ${oemRows.length - validOems.length} OEMs with mismatched industries`,
+      {
+        criteriaIndustry: criteria.industry,
+        totalFetched: oemRows.length,
+        validMatches: validOems.length,
+      }
+    );
+  }
 
   // Calculate match scores
-  const scoredMatches = oemRows.map((oem) =>
+  const scoredMatches = validOems.map((oem) =>
     calculateMatchScore(oem, criteria)
   );
 
   // Sort by score descending
-  return scoredMatches.sort((a, b) => b.score - a.score);
+  const sorted = scoredMatches.sort((a, b) => b.score - a.score);
+
+  return sorted;
 }
 
 /**
@@ -233,6 +242,10 @@ export async function saveMatches(
   context: SupabaseRouteContext
 ): Promise<void> {
   const { supabase } = context;
+
+  if (matches.length === 0) {
+    return;
+  }
 
   const upsertMatches: Database["public"]["Tables"]["matches"]["Insert"][] =
     matches.map((match) => ({
@@ -262,24 +275,20 @@ export async function saveMatches(
   if (upsertMatches.length > 0) {
     const { error: upsertError } = await supabase
       .from("matches")
-      .upsert<
-        Database["public"]["Tables"]["matches"]["Insert"]
-      >(upsertMatches, {
-        onConflict: "buyer_org_id,oem_org_id",
-        // Update existing matches with new scores if better
-      });
+      .upsert<Database["public"]["Tables"]["matches"]["Insert"]>(
+        upsertMatches,
+        {
+          onConflict: "buyer_org_id,oem_org_id",
+          // Update existing matches with new scores if better
+        }
+      )
+      .select();
 
     if (upsertError) {
-      console.error("matches_upsert_failed", upsertError);
       throw new AppError("Failed to store match results", {
         cause: upsertError,
         code: "matches_upsert_failed",
       });
     }
-
-    console.log(
-      `Saved ${upsertMatches.length} matches for ${criteria.source}`,
-      matches.map((m) => ({ oem: m.oemOrgId, score: m.score }))
-    );
   }
 }

@@ -55,8 +55,7 @@ export async function createReview(
   input: CreateReviewInput,
   context: SupabaseRouteContext
 ): Promise<ReviewResponse> {
-  const { supabase, session } = context;
-  const userId = session.user.id;
+  const { supabase, userId } = context;
 
   // Get buyer's organization ID
   const { data: membership, error: membershipError } = await supabase
@@ -199,8 +198,7 @@ export async function updateReview(
   input: UpdateReviewInput,
   context: SupabaseRouteContext
 ): Promise<ReviewResponse> {
-  const { supabase, session } = context;
-  const userId = session.user.id;
+  const { supabase, userId } = context;
 
   // Verify ownership
   const { data: existingReview } = await supabase
@@ -261,8 +259,7 @@ export async function deleteReview(
   reviewId: string,
   context: SupabaseRouteContext
 ): Promise<void> {
-  const { supabase, session } = context;
-  const userId = session.user.id;
+  const { supabase, userId } = context;
 
   const { error } = await supabase
     .from("reviews")
@@ -286,8 +283,7 @@ export async function markReviewHelpful(
   reviewId: string,
   context: SupabaseRouteContext
 ): Promise<void> {
-  const { supabase, session } = context;
-  const userId = session.user.id;
+  const { supabase, userId } = context;
 
   // Add helpful vote
   const { error: voteError } = await supabase
@@ -332,8 +328,7 @@ export async function markReviewHelpful(
 export async function getBuyerReviews(
   context: SupabaseRouteContext
 ): Promise<ReviewResponse[]> {
-  const { supabase, session } = context;
-  const userId = session.user.id;
+  const { supabase, userId } = context;
 
   // Get buyer's organization ID
   const { data: membership } = await supabase

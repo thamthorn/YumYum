@@ -1,6 +1,6 @@
 "use client";
 
-import { ReactNode, useEffect } from "react";
+import { ReactNode, useEffect, Suspense } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "@/lib/supabase/session-context";
 
@@ -8,7 +8,7 @@ interface Props {
   children: ReactNode;
 }
 
-export default function ProtectedClient({ children }: Props) {
+function ProtectedClientInner({ children }: Props) {
   const router = useRouter();
   const pathname = usePathname();
   const search = useSearchParams();
@@ -24,4 +24,12 @@ export default function ProtectedClient({ children }: Props) {
 
   if (isLoading || !session) return null;
   return <>{children}</>;
+}
+
+export default function ProtectedClient({ children }: Props) {
+  return (
+    <Suspense fallback={null}>
+      <ProtectedClientInner>{children}</ProtectedClientInner>
+    </Suspense>
+  );
 }

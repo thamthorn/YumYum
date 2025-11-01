@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import Navigation from "@/components/Navigation";
@@ -50,6 +51,11 @@ type OemInfo = {
   slug: string | null;
 };
 
+type UploadedFile = {
+  file: File;
+  preview: string;
+};
+
 function RequestForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -68,6 +74,8 @@ function RequestForm() {
     addEscrow: false,
     addAudit: false,
   });
+  const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
+  const [isUploadingFiles, setIsUploadingFiles] = useState(false);
   const [oem, setOem] = useState<OemInfo | null>(null);
   const [isLoadingOem, setIsLoadingOem] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -92,7 +100,11 @@ function RequestForm() {
         .maybeSingle();
 
       if (trySlug.data) {
-        const orgData = trySlug.data as { id: string; display_name: string; slug: string | null };
+        const orgData = trySlug.data as {
+          id: string;
+          display_name: string;
+          slug: string | null;
+        };
         setOem({
           id: orgData.id,
           name: orgData.display_name,
@@ -116,7 +128,11 @@ function RequestForm() {
         .maybeSingle();
 
       if (tryId.data) {
-        const orgData = tryId.data as { id: string; display_name: string; slug: string | null };
+        const orgData = tryId.data as {
+          id: string;
+          display_name: string;
+          slug: string | null;
+        };
         setOem({
           id: orgData.id,
           name: orgData.display_name,
@@ -132,11 +148,120 @@ function RequestForm() {
     loadOem();
   }, [oemParam, supabase]);
 
+  // Cleanup file previews on unmount
+  useEffect(() => {
+    return () => {
+      uploadedFiles.forEach((file) => {
+        URL.revokeObjectURL(file.preview);
+      });
+    };
+  }, [uploadedFiles]);
+
   const updateFormData = <K extends keyof FormState>(
     key: K,
     value: FormState[K]
   ) => {
     setFormData((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+
+    const newFiles: UploadedFile[] = [];
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+
+      // Validate file size (max 10MB)
+      if (file.size > 10 * 1024 * 1024) {
+        toast.error(`File ${file.name} is too large. Maximum size is 10MB.`);
+        continue;
+      }
+
+      // Validate file type (images and PDFs)
+      const allowedTypes = [
+        "image/jpeg",
+        "image/png",
+        "image/webp",
+        "application/pdf",
+      ];
+      if (!allowedTypes.includes(file.type)) {
+        toast.error(
+          `File ${file.name} is not a supported format. Use JPG, PNG, WEBP, or PDF.`
+        );
+        continue;
+      }
+
+      newFiles.push({
+        file,
+        preview: URL.createObjectURL(file),
+      });
+    }
+
+    setUploadedFiles((prev) => [...prev, ...newFiles]);
+    toast.success(`${newFiles.length} file(s) added`);
+  };
+
+  const removeFile = (index: number) => {
+    setUploadedFiles((prev) => {
+      const newFiles = [...prev];
+      URL.revokeObjectURL(newFiles[index].preview);
+      newFiles.splice(index, 1);
+      return newFiles;
+    });
+    toast.success("File removed");
+  };
+
+  const uploadFilesToStorage = async (requestId: string, userId: string) => {
+    if (uploadedFiles.length === 0) return;
+
+    setIsUploadingFiles(true);
+
+    try {
+      for (const { file } of uploadedFiles) {
+        // Generate unique file path
+        const fileExt = file.name.split(".").pop();
+        const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+        const filePath = `${requestId}/${fileName}`;
+
+        // Upload to Supabase Storage
+        const { error: uploadError } = await supabase.storage
+          .from("request-files")
+          .upload(filePath, file, {
+            cacheControl: "3600",
+            upsert: false,
+          });
+
+        if (uploadError) {
+          console.error("Upload error:", uploadError);
+          toast.error(`Failed to upload ${file.name}`);
+          continue;
+        }
+
+        // Save file metadata to database
+        const { error: dbError } = await supabase.from("request_files").insert({
+          request_id: requestId,
+          bucket: "request-files",
+          path: filePath,
+          mime_type: file.type,
+          size_bytes: file.size,
+          uploaded_by: userId,
+        } as never);
+
+        if (dbError) {
+          console.error("Database error:", dbError);
+          toast.error(`Failed to save metadata for ${file.name}`);
+        }
+      }
+
+      toast.success("Files uploaded successfully");
+    } catch (error) {
+      console.error("Upload error:", error);
+      toast.error("Failed to upload some files");
+    } finally {
+      setIsUploadingFiles(false);
+    }
   };
 
   const isStepValid = () => {
@@ -150,7 +275,10 @@ function RequestForm() {
       return formData.timeline.trim().length > 0;
     }
     if (step === 5) {
-      return formData.shipping.trim().length > 0 && formData.payment.trim().length > 0;
+      return (
+        formData.shipping.trim().length > 0 &&
+        formData.payment.trim().length > 0
+      );
     }
     return true;
   };
@@ -193,6 +321,19 @@ function RequestForm() {
       if (!response.ok) {
         const body = await response.json().catch(() => null);
         throw new Error(body?.error?.message ?? "Unable to submit request");
+      }
+
+      const result = await response.json();
+      const requestId = result.data?.id;
+
+      // Upload files if any
+      if (requestId && uploadedFiles.length > 0) {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        if (user) {
+          await uploadFilesToStorage(requestId, user.id);
+        }
       }
 
       toast.success("Request submitted successfully!", {
@@ -255,7 +396,8 @@ function RequestForm() {
                 </p>
               ) : oem ? (
                 <p className="text-sm text-muted-foreground mt-2">
-                  Requesting from <span className="font-semibold">{oem.name}</span>
+                  Requesting from{" "}
+                  <span className="font-semibold">{oem.name}</span>
                 </p>
               ) : (
                 <p className="text-sm text-muted-foreground mt-2">
@@ -335,15 +477,90 @@ function RequestForm() {
                   </div>
 
                   <div className="space-y-4">
-                    <div className="border-2 border-dashed border-border rounded-lg p-8 text-center">
+                    <div
+                      className="border-2 border-dashed border-border rounded-lg p-8 text-center hover:border-primary/50 transition-colors cursor-pointer"
+                      onClick={() =>
+                        document.getElementById("file-upload")?.click()
+                      }
+                    >
                       <Upload className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
                       <p className="font-medium mb-1">
                         Upload reference files (optional)
                       </p>
-                      <p className="text-sm text-muted-foreground">
-                        Design files, tech packs, reference images, or specifications
+                      <p className="text-sm text-muted-foreground mb-2">
+                        Design files, tech packs, reference images, or
+                        specifications
                       </p>
+                      <p className="text-xs text-muted-foreground">
+                        JPG, PNG, WEBP, or PDF (max 10MB per file)
+                      </p>
+                      <input
+                        id="file-upload"
+                        type="file"
+                        multiple
+                        accept="image/jpeg,image/png,image/webp,application/pdf"
+                        onChange={handleFileUpload}
+                        className="hidden"
+                        aria-label="Upload files"
+                      />
                     </div>
+
+                    {uploadedFiles.length > 0 && (
+                      <div className="space-y-2">
+                        <p className="text-sm font-medium">
+                          Uploaded Files ({uploadedFiles.length})
+                        </p>
+                        <div className="grid grid-cols-2 gap-2">
+                          {uploadedFiles.map((uploadedFile, index) => (
+                            <div
+                              key={index}
+                              className="relative border rounded-lg p-2 group"
+                            >
+                              {uploadedFile.file.type.startsWith("image/") ? (
+                                <Image
+                                  src={uploadedFile.preview}
+                                  alt={uploadedFile.file.name}
+                                  width={200}
+                                  height={96}
+                                  className="w-full h-24 object-cover rounded"
+                                  unoptimized
+                                />
+                              ) : (
+                                <div className="w-full h-24 flex items-center justify-center bg-muted rounded">
+                                  <FileText className="h-8 w-8 text-muted-foreground" />
+                                </div>
+                              )}
+                              <p className="text-xs mt-1 truncate">
+                                {uploadedFile.file.name}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                {(uploadedFile.file.size / 1024).toFixed(0)} KB
+                              </p>
+                              <button
+                                type="button"
+                                onClick={() => removeFile(index)}
+                                className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                                aria-label="Remove file"
+                                title="Remove file"
+                              >
+                                <svg
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  className="h-4 w-4"
+                                  viewBox="0 0 20 20"
+                                  fill="currentColor"
+                                >
+                                  <path
+                                    fillRule="evenodd"
+                                    d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                                    clipRule="evenodd"
+                                  />
+                                </svg>
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
@@ -485,14 +702,23 @@ function RequestForm() {
                 <Button
                   onClick={handleNext}
                   className={step === 1 ? "w-full" : "ml-auto"}
-                  disabled={isContinueDisabled || isLoadingOem || !oem}
+                  disabled={
+                    isContinueDisabled ||
+                    isLoadingOem ||
+                    !oem ||
+                    isUploadingFiles
+                  }
                 >
-                  {isSubmitting
-                    ? "Submitting..."
-                    : step === totalSteps
-                      ? "Submit Request"
-                      : "Continue"}
-                  {!isSubmitting && <ArrowRight className="ml-2 h-4 w-4" />}
+                  {isUploadingFiles
+                    ? "Uploading files..."
+                    : isSubmitting
+                      ? "Submitting..."
+                      : step === totalSteps
+                        ? "Submit Request"
+                        : "Continue"}
+                  {!isSubmitting && !isUploadingFiles && (
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  )}
                 </Button>
               </div>
             </Card>

@@ -35,10 +35,8 @@ export const processBuyerOnboarding = async (
 ): Promise<BuyerOnboardingResult> => {
   const input = onboardingInputSchema.parse(payload);
   const { moqRange, ...rest } = input;
-  const { supabase, session } = context;
+  const { supabase, userId } = context;
   const supabaseAdmin = createSupabaseAdminClient();
-
-  const userId = session.user.id;
 
   // Determine existing buyer organization for the user
   const { data: membershipData, error: membershipError } = await supabase

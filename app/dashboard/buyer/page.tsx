@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { Suspense, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import Navigation from "@/components/Navigation";
@@ -25,6 +26,8 @@ import {
   Trash2,
   Bookmark,
   BookmarkCheck,
+  RefreshCw,
+  FileIcon,
 } from "lucide-react";
 import {
   ROUTES,
@@ -51,6 +54,12 @@ type RequestResponse = {
   addAudit: boolean | null;
   submittedAt: string | null;
   createdAt: string | null;
+  files?: Array<{
+    id: string;
+    path: string;
+    mimeType: string;
+    sizeBytes: number;
+  }>;
   oem: {
     id: string;
     name: string;
@@ -94,7 +103,7 @@ type SavedOemResponse = {
 };
 
 function DashboardContent() {
-  const { session } = useSupabase();
+  const { session, supabase } = useSupabase();
   const queryClient = useQueryClient();
 
   const [activeRequestId, setActiveRequestId] = useState<string | null>(null);
@@ -121,6 +130,7 @@ function DashboardContent() {
     data: matches = [],
     isLoading: isLoadingMatches,
     error: matchesError,
+    refetch: refetchMatches,
   } = useQuery<MatchResponse[]>({
     queryKey: ["buyer-matches"],
     queryFn: async () => {
@@ -133,6 +143,8 @@ function DashboardContent() {
       return body.data ?? [];
     },
     enabled: Boolean(session),
+    refetchInterval: 2000, // Auto-refetch every 2 seconds (faster updates)
+    refetchOnWindowFocus: true, // Refetch when window regains focus
   });
 
   // Fetch saved OEMs
@@ -147,6 +159,24 @@ function DashboardContent() {
       }
       const body = (await response.json()) as { savedOems: SavedOemResponse[] };
       return body.savedOems ?? [];
+    },
+    enabled: Boolean(session),
+  });
+
+  // Fetch orders to check which matches have orders
+  const { data: orders = [] } = useQuery<
+    Array<{ id: string; oem_org_id: string }>
+  >({
+    queryKey: ["buyer-orders"],
+    queryFn: async () => {
+      const response = await fetch("/api/orders");
+      if (!response.ok) {
+        return [];
+      }
+      const body = (await response.json()) as {
+        orders: Array<{ id: string; oem_org_id: string }>;
+      };
+      return body.orders ?? [];
     },
     enabled: Boolean(session),
   });
@@ -270,7 +300,9 @@ function DashboardContent() {
     },
     {
       label: "Matches",
-      value: matches.length.toString(),
+      value: matches
+        .filter((m) => m.status !== "new_match" && m.status !== "New Match")
+        .length.toString(),
       icon: TrendingUp,
       color: "text-success",
     },
@@ -449,6 +481,52 @@ function DashboardContent() {
                               </h4>
                               <p>{request.productBrief ?? "N/A"}</p>
                             </div>
+
+                            {/* Uploaded Files */}
+                            {request.files && request.files.length > 0 && (
+                              <div>
+                                <h4 className="font-semibold text-foreground mb-2">
+                                  Uploaded Files
+                                </h4>
+                                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                                  {request.files.map((file) => {
+                                    const isImage =
+                                      file.mimeType.startsWith("image/");
+                                    const imageUrl = supabase.storage
+                                      .from("request-files")
+                                      .getPublicUrl(file.path).data.publicUrl;
+
+                                    return (
+                                      <div
+                                        key={file.id}
+                                        className="relative aspect-square rounded-lg border border-border overflow-hidden bg-muted"
+                                      >
+                                        {isImage ? (
+                                          <Image
+                                            src={imageUrl}
+                                            alt="Uploaded file"
+                                            fill
+                                            className="object-cover"
+                                            unoptimized
+                                          />
+                                        ) : (
+                                          <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
+                                            <FileIcon className="h-8 w-8 mb-2" />
+                                            <span className="text-xs text-center px-2">
+                                              {file.path
+                                                .split("/")
+                                                .pop()
+                                                ?.slice(0, 20)}
+                                            </span>
+                                          </div>
+                                        )}
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            )}
+
                             <div className="grid md:grid-cols-2 gap-3">
                               <div>
                                 <span className="font-semibold text-foreground">
@@ -504,33 +582,44 @@ function DashboardContent() {
                 <div className="mb-6">
                   <div className="flex items-center justify-between mb-4">
                     <p className="text-muted-foreground">
-                      Based on your requirements and preferences, we&apos;ve
-                      found {matches.length} potential OEM partners.
+                      OEMs that have accepted and are engaged with your
+                      requests.
                     </p>
-                    {matches.length > 0 && (
+                    <div className="flex gap-2">
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={handleClearMatches}
-                        disabled={clearMatchesMutation.isPending}
-                        className="text-destructive hover:text-destructive"
+                        onClick={() => refetchMatches()}
+                        disabled={isLoadingMatches}
                       >
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        {clearMatchesMutation.isPending
-                          ? "Clearing..."
-                          : "Clear All Matches"}
+                        <RefreshCw
+                          className={`h-4 w-4 mr-2 ${isLoadingMatches ? "animate-spin" : ""}`}
+                        />
+                        Refresh
                       </Button>
-                    )}
+                      {matches.filter(
+                        (m) =>
+                          m.status !== "new_match" && m.status !== "New Match"
+                      ).length > 0 && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={handleClearMatches}
+                          disabled={clearMatchesMutation.isPending}
+                          className="text-destructive hover:text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          {clearMatchesMutation.isPending
+                            ? "Clearing..."
+                            : "Clear All Matches"}
+                        </Button>
+                      )}
+                    </div>
                   </div>
                   <div className="flex gap-2">
                     <Badge variant="outline">
-                      {
-                        matches.filter(
-                          (m) =>
-                            m.status === "new_match" || m.status === "New Match"
-                        ).length
-                      }{" "}
-                      new
+                      {matches.filter((m) => m.status === "contacted").length}{" "}
+                      contacted
                     </Badge>
                     <Badge variant="outline">
                       {
@@ -549,16 +638,37 @@ function DashboardContent() {
                   <Card className="p-6 text-center text-muted-foreground">
                     Loading matches...
                   </Card>
-                ) : matches.length === 0 ? (
+                ) : matches.filter(
+                    (match) =>
+                      match.oem !== null &&
+                      match.status !== "new_match" &&
+                      match.status !== "New Match"
+                  ).length === 0 ? (
                   <Card className="p-12 text-center text-muted-foreground">
-                    No matches yet. Complete onboarding to generate your
-                    matches.
+                    No confirmed matches yet. Your recommendations will appear
+                    here once OEMs accept your requests.
                   </Card>
                 ) : (
                   matches
-                    .filter((match) => match.oem !== null)
+                    .filter(
+                      (match) =>
+                        match.oem !== null &&
+                        match.status !== "new_match" &&
+                        match.status !== "New Match"
+                    )
                     .map((match) => {
                       const oem = match.oem!;
+
+                      // Log OEM org ID for mock data setup
+                      if (process.env.NODE_ENV === "development") {
+                        console.log(
+                          "🔍 OEM org ID:",
+                          oem.organizationId,
+                          "| Name:",
+                          oem.name
+                        );
+                      }
+
                       const scale =
                         oem.scale === "large"
                           ? "Large"
@@ -623,6 +733,12 @@ function DashboardContent() {
                                 </h3>
                                 <Badge
                                   variant={getMatchStatusVariant(match.status)}
+                                  className={
+                                    match.status === "declined" ||
+                                    match.status === "Declined"
+                                      ? "text-destructive"
+                                      : ""
+                                  }
                                 >
                                   {match.status.replace(/_/g, " ")}
                                 </Badge>
@@ -632,20 +748,24 @@ function DashboardContent() {
                               </div>
 
                               <div className="flex items-center gap-4 text-sm text-muted-foreground mb-3">
-                                <span className="flex items-center gap-1 font-medium text-primary">
-                                  <Target className="h-4 w-4" />
-                                  {match.score ?? 100}% Match
-                                </span>
                                 {oem.location && (
-                                  <>
-                                    <span>•</span>
-                                    <span className="flex items-center gap-1">
-                                      <MapPin className="h-3 w-3" />
-                                      {oem.location}
-                                    </span>
-                                  </>
+                                  <span className="flex items-center gap-1">
+                                    <MapPin className="h-3 w-3" />
+                                    {oem.location}
+                                  </span>
                                 )}
                               </div>
+                            </div>
+
+                            {/* Match Score - Top Right */}
+                            <div className="flex flex-col items-end gap-1 ml-4">
+                              <div className="flex items-center gap-2 text-2xl font-bold text-primary">
+                                <Target className="h-6 w-6" />
+                                {match.score ?? 100}%
+                              </div>
+                              <span className="text-xs text-muted-foreground">
+                                Match Score
+                              </span>
                             </div>
                           </div>
 
@@ -709,6 +829,24 @@ function DashboardContent() {
                               )}
                             </Button>
 
+                            {/* View Order button - shown if order exists for this OEM */}
+                            {(() => {
+                              const matchOrder = orders.find(
+                                (order) =>
+                                  order.oem_org_id === oem.organizationId
+                              );
+                              return matchOrder ? (
+                                <Button size="sm" variant="default" asChild>
+                                  <Link
+                                    href={ROUTES.orderDetail(matchOrder.id)}
+                                  >
+                                    <Package className="h-4 w-4 mr-1" />
+                                    View Order
+                                  </Link>
+                                </Button>
+                              ) : null;
+                            })()}
+
                             {(match.status === "new_match" ||
                               match.status === "New Match") && (
                               <>
@@ -739,32 +877,42 @@ function DashboardContent() {
                                     Continue Chat
                                   </Link>
                                 </Button>
-                                <Button size="sm" variant="outline" asChild>
-                                  <Link
-                                    href={ROUTES.requestQuote(
-                                      oem.organizationId
-                                    )}
-                                  >
-                                    <FileText className="h-4 w-4 mr-1" />
-                                    Request Quote
-                                  </Link>
-                                </Button>
+                                {!orders.find(
+                                  (order) =>
+                                    order.oem_org_id === oem.organizationId
+                                ) && (
+                                  <Button size="sm" variant="outline" asChild>
+                                    <Link
+                                      href={ROUTES.requestQuote(
+                                        oem.organizationId
+                                      )}
+                                    >
+                                      <FileText className="h-4 w-4 mr-1" />
+                                      Request Quote
+                                    </Link>
+                                  </Button>
+                                )}
                               </>
                             )}
 
                             {(match.status === "in_discussion" ||
                               match.status === "In Discussion") && (
                               <>
-                                <Button size="sm" asChild>
-                                  <Link
-                                    href={ROUTES.requestQuote(
-                                      oem.organizationId
-                                    )}
-                                  >
-                                    <Zap className="h-4 w-4 mr-1" />
-                                    Request Quote
-                                  </Link>
-                                </Button>
+                                {!orders.find(
+                                  (order) =>
+                                    order.oem_org_id === oem.organizationId
+                                ) && (
+                                  <Button size="sm" asChild>
+                                    <Link
+                                      href={ROUTES.requestQuote(
+                                        oem.organizationId
+                                      )}
+                                    >
+                                      <Zap className="h-4 w-4 mr-1" />
+                                      Request Quote
+                                    </Link>
+                                  </Button>
+                                )}
                                 <Button size="sm" variant="outline" asChild>
                                   <Link href={ROUTES.messageThread(match.id)}>
                                     <MessageSquare className="h-4 w-4 mr-1" />
@@ -792,16 +940,21 @@ function DashboardContent() {
                                     View Profile
                                   </Link>
                                 </Button>
-                                <Button size="sm" variant="outline" asChild>
-                                  <Link
-                                    href={ROUTES.requestQuote(
-                                      oem.organizationId
-                                    )}
-                                  >
-                                    <Zap className="h-4 w-4 mr-1" />
-                                    Request Quote
-                                  </Link>
-                                </Button>
+                                {!orders.find(
+                                  (order) =>
+                                    order.oem_org_id === oem.organizationId
+                                ) && (
+                                  <Button size="sm" variant="outline" asChild>
+                                    <Link
+                                      href={ROUTES.requestQuote(
+                                        oem.organizationId
+                                      )}
+                                    >
+                                      <Zap className="h-4 w-4 mr-1" />
+                                      Request Quote
+                                    </Link>
+                                  </Button>
+                                )}
                               </>
                             )}
                           </div>

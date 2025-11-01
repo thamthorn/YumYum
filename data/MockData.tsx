@@ -5,6 +5,7 @@ export type Industry =
   | "Cosmetics"
   | "Dental/Medical"
   | "Education"
+  | "Packaging"
   | "Other";
 
 export type Scale = "Small" | "Medium" | "Large";
@@ -70,7 +71,8 @@ export const ROUTES = {
   oemProfile: (id: number | string) => `/oem/${id}`,
   onboarding: "/onboarding/buyer",
   requestQuote: (oemId: string | number) => `/request/quote?oem=${oemId}`,
-  requestPrototype: (oemId: string | number) => `/request/prototype?oem=${oemId}`,
+  requestPrototype: (oemId: string | number) =>
+    `/request/prototype?oem=${oemId}`,
   results: "/results",
   trust: "/trust",
   pricing: "/pricing",
@@ -902,10 +904,12 @@ export const getMatchStatusVariant = (
     "default" | "secondary" | "outline" | "destructive"
   > = {
     "New Match": "default",
-    Contacted: "secondary",
-    "In Discussion": "default",
+    Contacted: "default",
+    contacted: "default",
+    "In Discussion": "secondary",
     "Quote Requested": "secondary",
     Declined: "outline",
+    declined: "outline",
   };
   return variants[status] || "outline";
 };

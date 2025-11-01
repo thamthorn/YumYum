@@ -20,8 +20,7 @@ export interface OrderWithDetails extends OrderRow {
 export const getOrdersByBuyer = async (
   context: SupabaseRouteContext
 ): Promise<OrderWithDetails[]> => {
-  const { supabase, session } = context;
-  const userId = session.user.id;
+  const { supabase, userId } = context;
 
   // Get buyer organization
   const { data: membership, error: membershipError } = await supabase
@@ -66,8 +65,7 @@ export const getOrderById = async (
   orderId: string,
   context: SupabaseRouteContext
 ): Promise<OrderWithDetails> => {
-  const { supabase, session } = context;
-  const userId = session.user.id;
+  const { supabase, userId } = context;
 
   // Get buyer organization
   const { data: membership, error: membershipError } = await supabase

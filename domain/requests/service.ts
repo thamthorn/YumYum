@@ -9,7 +9,7 @@ import { generateMatchesForRequest } from "@/domain/requests/matching";
 
 type RequestServiceContext = Pick<
   SupabaseRouteContext,
-  "supabase" | "session" | "authorizer"
+  "supabase" | "userId" | "authorizer"
 >;
 
 export const createRequest = async (
@@ -58,17 +58,19 @@ export const createRequest = async (
       add_escrow: input.addEscrow ?? null,
       add_audit: input.addAudit ?? null,
       submitted_at: now,
-      created_by: context.session.user.id,
-      updated_by: context.session.user.id,
+      created_by: context.userId,
+      updated_by: context.userId,
     },
     context.supabase
   );
 
   // Generate matches for this request asynchronously (don't block response)
+  // If an oemOrgId is specified, only create a match with that specific OEM
   generateMatchesForRequest(
     inserted.id,
     {
       buyerOrgId,
+      oemOrgId: input.oemOrgId, // Pass the specific OEM ID
       type: input.type,
       productBrief: input.productBrief,
       quantityMin: input.quantityMin,

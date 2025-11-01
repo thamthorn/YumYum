@@ -7,7 +7,6 @@ export async function GET() {
   try {
     const context = await createSupabaseRouteContext();
     const orders = await getOrdersByBuyer(context);
-
     return NextResponse.json({ orders }, { status: 200 });
   } catch (error) {
     if (error instanceof AppError) {

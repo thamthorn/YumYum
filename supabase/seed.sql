@@ -947,3 +947,369 @@ on conflict (id) do update set
   tags = excluded.tags,
   note = excluded.note,
   created_at = excluded.created_at;
+
+-- ============================================
+-- PRODUCTS & PRICING DATA
+-- ============================================
+
+-- Products for Premium Fashion Co. (Fashion)
+insert into public.products (
+  id,
+  oem_org_id,
+  name,
+  description,
+  category,
+  sku,
+  image_url,
+  specifications,
+  lead_time_days,
+  moq,
+  is_active
+)
+values
+  (
+    '00000000-0000-0000-0000-000000000501',
+    '00000000-0000-0000-0000-000000000011',
+    'Premium Cotton T-Shirt',
+    'High-quality 100% organic cotton t-shirt with custom printing options. Perfect for fashion brands and promotional merchandise.',
+    'Apparel',
+    'PFC-TS-001',
+    'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=800&h=600&fit=crop',
+    '{"material": "100% Organic Cotton", "weight": "180 GSM", "sizes": ["XS", "S", "M", "L", "XL", "XXL"], "colors": ["White", "Black", "Navy", "Gray"], "printing": "Screen print or DTG available"}'::jsonb,
+    30,
+    500,
+    true
+  ),
+  (
+    '00000000-0000-0000-0000-000000000502',
+    '00000000-0000-0000-0000-000000000011',
+    'Eco-Friendly Tote Bag',
+    'Sustainable canvas tote bag with reinforced handles. Ideal for retail packaging or promotional giveaways.',
+    'Accessories',
+    'PFC-TB-002',
+    'https://images.unsplash.com/photo-1590874103328-eac38a683ce7?w=800&h=600&fit=crop',
+    '{"material": "Organic Canvas", "dimensions": "38cm x 42cm x 10cm", "handle_length": "65cm", "weight": "120 GSM", "customization": "Logo print, embroidery available"}'::jsonb,
+    25,
+    1000,
+    true
+  ),
+  (
+    '00000000-0000-0000-0000-000000000503',
+    '00000000-0000-0000-0000-000000000011',
+    'Silk Scarf Collection',
+    'Luxurious 100% mulberry silk scarves with custom patterns. Premium gift item or fashion accessory.',
+    'Accessories',
+    'PFC-SC-003',
+    'https://images.unsplash.com/photo-1601924994987-69e26d50dc26?w=800&h=600&fit=crop',
+    '{"material": "100% Mulberry Silk", "dimensions": "90cm x 90cm", "weight": "16 Momme", "finish": "Hand-rolled edges", "printing": "Digital print, custom designs"}'::jsonb,
+    45,
+    200,
+    true
+  ),
+
+  -- Products for Artisan Textiles (Fashion)
+  (
+    '00000000-0000-0000-0000-000000000504',
+    '00000000-0000-0000-0000-000000000012',
+    'Hand-Woven Cushion Cover',
+    'Artisan hand-woven cushion covers using traditional Thai weaving techniques. Each piece is unique.',
+    'Home Decor',
+    'AT-CC-001',
+    'https://images.unsplash.com/photo-1615876234886-fd9a39fda97f?w=800&h=600&fit=crop',
+    '{"material": "Cotton & Silk Blend", "dimensions": "45cm x 45cm", "technique": "Hand-woven", "patterns": "Traditional Thai patterns", "colors": "Natural dyes available"}'::jsonb,
+    35,
+    100,
+    true
+  ),
+  (
+    '00000000-0000-0000-0000-000000000505',
+    '00000000-0000-0000-0000-000000000012',
+    'Custom Embroidered Denim Jacket',
+    'Premium denim jacket with custom embroidery services. Perfect for fashion brands looking for unique pieces.',
+    'Apparel',
+    'AT-DJ-002',
+    'https://images.unsplash.com/photo-1551028719-00167b16eac5?w=800&h=600&fit=crop',
+    '{"material": "100% Cotton Denim", "weight": "12 oz", "sizes": ["S", "M", "L", "XL"], "embroidery": "Custom designs up to 10 colors", "wash": "Stone washed finish"}'::jsonb,
+    40,
+    150,
+    true
+  ),
+
+  -- Products for Thai Snacks Factory (F&B)
+  (
+    '00000000-0000-0000-0000-000000000506',
+    '00000000-0000-0000-0000-000000000013',
+    'Coconut Chips - Original Flavor',
+    'Crispy coconut chips made from premium Thai coconuts. Light, healthy snack with no artificial additives.',
+    'Snacks',
+    'TSF-CC-001',
+    'https://images.unsplash.com/photo-1599490659213-e2b9527bd087?w=800&h=600&fit=crop',
+    '{"ingredients": "Coconut, Sea Salt, Coconut Oil", "weight_per_bag": "40g", "shelf_life": "12 months", "packaging": "Resealable pouch", "certifications": ["Organic", "Non-GMO"]}'::jsonb,
+    20,
+    5000,
+    true
+  ),
+  (
+    '00000000-0000-0000-0000-000000000507',
+    '00000000-0000-0000-0000-000000000013',
+    'Mango Sticky Rice Snack Bar',
+    'Traditional Thai dessert transformed into a convenient snack bar. Authentic taste in portable format.',
+    'Snacks',
+    'TSF-MSR-002',
+    'https://images.unsplash.com/photo-1625814069630-f5d4c5d4b05e?w=800&h=600&fit=crop',
+    '{"ingredients": "Glutinous Rice, Mango, Coconut Cream, Sugar", "weight_per_bar": "35g", "shelf_life": "6 months", "packaging": "Individual wrapper", "allergens": ["Tree nuts (coconut)"]}'::jsonb,
+    25,
+    10000,
+    true
+  ),
+
+  -- Products for Organic Beverages Ltd (F&B)
+  (
+    '00000000-0000-0000-0000-000000000508',
+    '00000000-0000-0000-0000-000000000014',
+    'Cold-Pressed Green Juice',
+    'Organic cold-pressed juice blend with kale, cucumber, and apple. Premium health beverage.',
+    'Beverages',
+    'OB-GJ-001',
+    'https://images.unsplash.com/photo-1610970881699-44a5587cabec?w=800&h=600&fit=crop',
+    '{"ingredients": "Kale, Cucumber, Green Apple, Lemon, Ginger", "volume": "300ml", "shelf_life": "7 days refrigerated", "packaging": "Glass bottle", "certifications": ["USDA Organic", "Non-GMO"]}'::jsonb,
+    15,
+    500,
+    true
+  ),
+  (
+    '00000000-0000-0000-0000-000000000509',
+    '00000000-0000-0000-0000-000000000014',
+    'Herbal Tea Sachets - Lemongrass',
+    'Premium organic lemongrass tea in biodegradable pyramid sachets. Refreshing and calming blend.',
+    'Beverages',
+    'OB-LT-002',
+    'https://images.unsplash.com/photo-1563822249366-67cb980d6e1e?w=800&h=600&fit=crop',
+    '{"ingredients": "100% Organic Lemongrass", "sachets_per_box": "20", "weight_per_sachet": "2g", "packaging": "Compostable pyramid sachets", "shelf_life": "24 months"}'::jsonb,
+    30,
+    2000,
+    true
+  ),
+
+  -- Products for Natural Beauty Labs (Cosmetics)
+  (
+    '00000000-0000-0000-0000-000000000510',
+    '00000000-0000-0000-0000-000000000015',
+    'Vitamin C Serum',
+    'Powerful anti-aging serum with 20% L-Ascorbic Acid. Brightens skin and reduces fine lines.',
+    'Skincare',
+    'NBL-VCS-001',
+    'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?w=800&h=600&fit=crop',
+    '{"active_ingredients": "20% L-Ascorbic Acid, Vitamin E, Ferulic Acid", "volume": "30ml", "packaging": "Amber glass dropper bottle", "pH": "3.0-3.5", "shelf_life": "12 months unopened"}'::jsonb,
+    35,
+    500,
+    true
+  ),
+  (
+    '00000000-0000-0000-0000-000000000511',
+    '00000000-0000-0000-0000-000000000015',
+    'Hyaluronic Acid Moisturizer',
+    'Intense hydration cream with multi-molecular weight hyaluronic acid. Suitable for all skin types.',
+    'Skincare',
+    'NBL-HAM-002',
+    'https://images.unsplash.com/photo-1556228852-80f3f2e6f1ba?w=800&h=600&fit=crop',
+    '{"active_ingredients": "3% Hyaluronic Acid Complex, Ceramides, Niacinamide", "volume": "50ml", "packaging": "Airless pump bottle", "texture": "Lightweight gel-cream", "shelf_life": "18 months"}'::jsonb,
+    30,
+    1000,
+    true
+  ),
+
+  -- Products for Green Cosmetics Co. (Cosmetics)
+  (
+    '00000000-0000-0000-0000-000000000512',
+    '00000000-0000-0000-0000-000000000016',
+    'Luxury Rose Face Cream',
+    'Premium anti-aging face cream with damascus rose extract and gold peptides. Ultra-luxurious formula.',
+    'Skincare',
+    'GCC-RFC-001',
+    'https://images.unsplash.com/photo-1571875257727-256c39da42af?w=800&h=600&fit=crop',
+    '{"key_ingredients": "Damascus Rose Extract, Gold Peptides, Retinol, Squalane", "volume": "50ml", "packaging": "Luxury glass jar with gold cap", "certifications": ["FDA Registered"], "shelf_life": "24 months"}'::jsonb,
+    45,
+    300,
+    true
+  ),
+
+  -- Products for EcoPack Solutions (Packaging)
+  (
+    '00000000-0000-0000-0000-000000000513',
+    '00000000-0000-0000-0000-000000000021',
+    'Compostable Food Container',
+    'Biodegradable food container made from sugarcane bagasse. Perfect for takeaway meals.',
+    'Food Packaging',
+    'EPS-CFC-001',
+    'https://images.unsplash.com/photo-1607619056574-7b8d3ee536b2?w=800&h=600&fit=crop',
+    '{"material": "Sugarcane Bagasse", "dimensions": "23cm x 15cm x 5cm", "capacity": "1000ml", "temperature_range": "-20°C to 120°C", "certifications": ["Compostable", "FDA Approved"]}'::jsonb,
+    20,
+    10000,
+    true
+  ),
+  (
+    '00000000-0000-0000-0000-000000000514',
+    '00000000-0000-0000-0000-000000000021',
+    'Kraft Paper Mailer Box',
+    'Eco-friendly shipping box with custom printing. Strong and sustainable e-commerce packaging.',
+    'Shipping Packaging',
+    'EPS-KPM-002',
+    'https://images.unsplash.com/photo-1605461522175-47db3a053e0c?w=800&h=600&fit=crop',
+    '{"material": "100% Recycled Kraft Paper", "dimensions": "30cm x 20cm x 10cm", "weight_capacity": "5kg", "customization": "Full-color printing available", "assembly": "Self-locking design"}'::jsonb,
+    25,
+    5000,
+    true
+  ),
+
+  -- Products for Premium Packaging Co. (Packaging)
+  (
+    '00000000-0000-0000-0000-000000000515',
+    '00000000-0000-0000-0000-000000000022',
+    'Luxury Gift Box with Magnetic Closure',
+    'Premium rigid gift box with magnetic closure. Perfect for high-end products and luxury brands.',
+    'Gift Packaging',
+    'PPC-LGB-001',
+    'https://images.unsplash.com/photo-1549465220-1a8b9238cd48?w=800&h=600&fit=crop',
+    '{"material": "Rigid Cardboard with Art Paper", "dimensions": "25cm x 20cm x 8cm", "finish": "Matte lamination with spot UV", "closure": "Hidden magnetic closure", "customization": "Embossing, foil stamping available"}'::jsonb,
+    35,
+    1000,
+    true
+  )
+on conflict (id) do update set
+  name = excluded.name,
+  description = excluded.description,
+  category = excluded.category,
+  sku = excluded.sku,
+  image_url = excluded.image_url,
+  specifications = excluded.specifications,
+  lead_time_days = excluded.lead_time_days,
+  moq = excluded.moq,
+  is_active = excluded.is_active;
+
+-- Product Pricing Tiers
+insert into public.product_pricing (
+  id,
+  product_id,
+  min_quantity,
+  max_quantity,
+  unit_price,
+  currency
+)
+values
+  -- Premium Cotton T-Shirt pricing (economy of scale)
+  ('00000000-0000-0000-0000-000000000601', '00000000-0000-0000-0000-000000000501', 500, 999, 8.50, 'USD'),
+  ('00000000-0000-0000-0000-000000000602', '00000000-0000-0000-0000-000000000501', 1000, 2499, 7.80, 'USD'),
+  ('00000000-0000-0000-0000-000000000603', '00000000-0000-0000-0000-000000000501', 2500, 4999, 7.20, 'USD'),
+  ('00000000-0000-0000-0000-000000000604', '00000000-0000-0000-0000-000000000501', 5000, null, 6.50, 'USD'),
+
+  -- Eco-Friendly Tote Bag pricing
+  ('00000000-0000-0000-0000-000000000605', '00000000-0000-0000-0000-000000000502', 1000, 2499, 3.50, 'USD'),
+  ('00000000-0000-0000-0000-000000000606', '00000000-0000-0000-0000-000000000502', 2500, 4999, 3.20, 'USD'),
+  ('00000000-0000-0000-0000-000000000607', '00000000-0000-0000-0000-000000000502', 5000, 9999, 2.90, 'USD'),
+  ('00000000-0000-0000-0000-000000000608', '00000000-0000-0000-0000-000000000502', 10000, null, 2.50, 'USD'),
+
+  -- Silk Scarf Collection pricing
+  ('00000000-0000-0000-0000-000000000609', '00000000-0000-0000-0000-000000000503', 200, 499, 28.00, 'USD'),
+  ('00000000-0000-0000-0000-000000000610', '00000000-0000-0000-0000-000000000503', 500, 999, 25.50, 'USD'),
+  ('00000000-0000-0000-0000-000000000611', '00000000-0000-0000-0000-000000000503', 1000, null, 23.00, 'USD'),
+
+  -- Hand-Woven Cushion Cover pricing
+  ('00000000-0000-0000-0000-000000000612', '00000000-0000-0000-0000-000000000504', 100, 249, 18.00, 'USD'),
+  ('00000000-0000-0000-0000-000000000613', '00000000-0000-0000-0000-000000000504', 250, 499, 16.50, 'USD'),
+  ('00000000-0000-0000-0000-000000000614', '00000000-0000-0000-0000-000000000504', 500, null, 15.00, 'USD'),
+
+  -- Custom Embroidered Denim Jacket pricing
+  ('00000000-0000-0000-0000-000000000615', '00000000-0000-0000-0000-000000000505', 150, 299, 42.00, 'USD'),
+  ('00000000-0000-0000-0000-000000000616', '00000000-0000-0000-0000-000000000505', 300, 499, 38.50, 'USD'),
+  ('00000000-0000-0000-0000-000000000617', '00000000-0000-0000-0000-000000000505', 500, null, 35.00, 'USD'),
+
+  -- Coconut Chips pricing
+  ('00000000-0000-0000-0000-000000000618', '00000000-0000-0000-0000-000000000506', 5000, 9999, 1.20, 'USD'),
+  ('00000000-0000-0000-0000-000000000619', '00000000-0000-0000-0000-000000000506', 10000, 24999, 1.05, 'USD'),
+  ('00000000-0000-0000-0000-000000000620', '00000000-0000-0000-0000-000000000506', 25000, 49999, 0.95, 'USD'),
+  ('00000000-0000-0000-0000-000000000621', '00000000-0000-0000-0000-000000000506', 50000, null, 0.85, 'USD'),
+
+  -- Mango Sticky Rice Snack Bar pricing
+  ('00000000-0000-0000-0000-000000000622', '00000000-0000-0000-0000-000000000507', 10000, 19999, 1.35, 'USD'),
+  ('00000000-0000-0000-0000-000000000623', '00000000-0000-0000-0000-000000000507', 20000, 49999, 1.20, 'USD'),
+  ('00000000-0000-0000-0000-000000000624', '00000000-0000-0000-0000-000000000507', 50000, null, 1.05, 'USD'),
+
+  -- Cold-Pressed Green Juice pricing
+  ('00000000-0000-0000-0000-000000000625', '00000000-0000-0000-0000-000000000508', 500, 999, 4.50, 'USD'),
+  ('00000000-0000-0000-0000-000000000626', '00000000-0000-0000-0000-000000000508', 1000, 2499, 4.20, 'USD'),
+  ('00000000-0000-0000-0000-000000000627', '00000000-0000-0000-0000-000000000508', 2500, null, 3.80, 'USD'),
+
+  -- Herbal Tea Sachets pricing
+  ('00000000-0000-0000-0000-000000000628', '00000000-0000-0000-0000-000000000509', 2000, 4999, 6.50, 'USD'),
+  ('00000000-0000-0000-0000-000000000629', '00000000-0000-0000-0000-000000000509', 5000, 9999, 5.80, 'USD'),
+  ('00000000-0000-0000-0000-000000000630', '00000000-0000-0000-0000-000000000509', 10000, null, 5.20, 'USD'),
+
+  -- Vitamin C Serum pricing
+  ('00000000-0000-0000-0000-000000000631', '00000000-0000-0000-0000-000000000510', 500, 999, 12.50, 'USD'),
+  ('00000000-0000-0000-0000-000000000632', '00000000-0000-0000-0000-000000000510', 1000, 2499, 11.20, 'USD'),
+  ('00000000-0000-0000-0000-000000000633', '00000000-0000-0000-0000-000000000510', 2500, 4999, 10.00, 'USD'),
+  ('00000000-0000-0000-0000-000000000634', '00000000-0000-0000-0000-000000000510', 5000, null, 9.00, 'USD'),
+
+  -- Hyaluronic Acid Moisturizer pricing
+  ('00000000-0000-0000-0000-000000000635', '00000000-0000-0000-0000-000000000511', 1000, 2499, 8.50, 'USD'),
+  ('00000000-0000-0000-0000-000000000636', '00000000-0000-0000-0000-000000000511', 2500, 4999, 7.80, 'USD'),
+  ('00000000-0000-0000-0000-000000000637', '00000000-0000-0000-0000-000000000511', 5000, null, 7.00, 'USD'),
+
+  -- Luxury Rose Face Cream pricing
+  ('00000000-0000-0000-0000-000000000638', '00000000-0000-0000-0000-000000000512', 300, 499, 35.00, 'USD'),
+  ('00000000-0000-0000-0000-000000000639', '00000000-0000-0000-0000-000000000512', 500, 999, 32.00, 'USD'),
+  ('00000000-0000-0000-0000-000000000640', '00000000-0000-0000-0000-000000000512', 1000, null, 29.00, 'USD'),
+
+  -- Compostable Food Container pricing
+  ('00000000-0000-0000-0000-000000000641', '00000000-0000-0000-0000-000000000513', 10000, 24999, 0.45, 'USD'),
+  ('00000000-0000-0000-0000-000000000642', '00000000-0000-0000-0000-000000000513', 25000, 49999, 0.38, 'USD'),
+  ('00000000-0000-0000-0000-000000000643', '00000000-0000-0000-0000-000000000513', 50000, 99999, 0.32, 'USD'),
+  ('00000000-0000-0000-0000-000000000644', '00000000-0000-0000-0000-000000000513', 100000, null, 0.28, 'USD'),
+
+  -- Kraft Paper Mailer Box pricing
+  ('00000000-0000-0000-0000-000000000645', '00000000-0000-0000-0000-000000000514', 5000, 9999, 1.20, 'USD'),
+  ('00000000-0000-0000-0000-000000000646', '00000000-0000-0000-0000-000000000514', 10000, 24999, 1.05, 'USD'),
+  ('00000000-0000-0000-0000-000000000647', '00000000-0000-0000-0000-000000000514', 25000, null, 0.90, 'USD'),
+
+  -- Luxury Gift Box pricing
+  ('00000000-0000-0000-0000-000000000648', '00000000-0000-0000-0000-000000000515', 1000, 2499, 5.80, 'USD'),
+  ('00000000-0000-0000-0000-000000000649', '00000000-0000-0000-0000-000000000515', 2500, 4999, 5.20, 'USD'),
+  ('00000000-0000-0000-0000-000000000650', '00000000-0000-0000-0000-000000000515', 5000, null, 4.60, 'USD')
+on conflict (id) do update set
+  min_quantity = excluded.min_quantity,
+  max_quantity = excluded.max_quantity,
+  unit_price = excluded.unit_price,
+  currency = excluded.currency;
+
+-- Product Images (additional images for products)
+insert into public.product_images (
+  id,
+  product_id,
+  image_url,
+  alt_text,
+  display_order,
+  is_primary
+)
+values
+  -- Premium Cotton T-Shirt images
+  ('00000000-0000-0000-0000-000000000701', '00000000-0000-0000-0000-000000000501', 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=800&h=600&fit=crop', 'Premium Cotton T-Shirt - Front View', 0, true),
+  ('00000000-0000-0000-0000-000000000702', '00000000-0000-0000-0000-000000000501', 'https://images.unsplash.com/photo-1583743814966-8936f5b7be1a?w=800&h=600&fit=crop', 'Premium Cotton T-Shirt - Back View', 1, false),
+  ('00000000-0000-0000-0000-000000000703', '00000000-0000-0000-0000-000000000501', 'https://images.unsplash.com/photo-1622470953794-aa9c70b0fb9d?w=800&h=600&fit=crop', 'Premium Cotton T-Shirt - Detail', 2, false),
+
+  -- Silk Scarf images
+  ('00000000-0000-0000-0000-000000000704', '00000000-0000-0000-0000-000000000503', 'https://images.unsplash.com/photo-1601924994987-69e26d50dc26?w=800&h=600&fit=crop', 'Silk Scarf - Main Image', 0, true),
+  ('00000000-0000-0000-0000-000000000705', '00000000-0000-0000-0000-000000000503', 'https://images.unsplash.com/photo-1590736969955-71cc94901144?w=800&h=600&fit=crop', 'Silk Scarf - Pattern Detail', 1, false),
+
+  -- Vitamin C Serum images
+  ('00000000-0000-0000-0000-000000000706', '00000000-0000-0000-0000-000000000510', 'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?w=800&h=600&fit=crop', 'Vitamin C Serum - Product Shot', 0, true),
+  ('00000000-0000-0000-0000-000000000707', '00000000-0000-0000-0000-000000000510', 'https://images.unsplash.com/photo-1608248597279-f99d160bfcbc?w=800&h=600&fit=crop', 'Vitamin C Serum - Texture', 1, false),
+
+  -- Compostable Food Container images
+  ('00000000-0000-0000-0000-000000000708', '00000000-0000-0000-0000-000000000513', 'https://images.unsplash.com/photo-1607619056574-7b8d3ee536b2?w=800&h=600&fit=crop', 'Compostable Container - Main', 0, true),
+  ('00000000-0000-0000-0000-000000000709', '00000000-0000-0000-0000-000000000513', 'https://images.unsplash.com/photo-1610557992985-655c7e39b6ac?w=800&h=600&fit=crop', 'Compostable Container - With Food', 1, false)
+on conflict (id) do update set
+  image_url = excluded.image_url,
+  alt_text = excluded.alt_text,
+  display_order = excluded.display_order,
+  is_primary = excluded.is_primary;

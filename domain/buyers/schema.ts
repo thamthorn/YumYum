@@ -12,10 +12,10 @@ export const onboardingInputSchema = z.object({
       max,
     })),
   timeline: z.string().min(1, "Production timeline is required"),
-  location: z.string().min(1, "Location preference is required"),
+  location: z.string().optional(),
   certifications: z.array(z.string()).default([]),
   prototypeNeeded: z.boolean(),
-  crossBorder: z.boolean(),
+  crossBorder: z.boolean().optional(),
   quickMatch: z.boolean().optional(),
 });
 

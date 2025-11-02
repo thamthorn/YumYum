@@ -29,11 +29,23 @@ Navigate to: `http://localhost:3000/admin-create-order`
 
 Select the initial status for the order:
 
-- **Signed**: Order contract has been signed
+**To Pay Tab (Awaiting Payment):**
+
+- **Signed**: Order contract signed, awaiting payment
+
+**Ordered Tab (Active Orders):**
+
+- **Processing**: Order is being processed
 - **Preparation**: Preparing for production
-- **Manufacturing**: Currently in production
+- **In Production**: Currently being manufactured
+- **Manufacturing**: In manufacturing phase
 - **Delivering**: Being shipped to buyer
-- **Completed**: Order completed and delivered
+- **In Transit**: Currently in transit
+
+**History Tab (Completed/Cancelled):**
+
+- **Delivered**: Order delivered successfully
+- **Completed**: Order completed and closed
 - **Cancelled**: Order cancelled
 
 ### Step 3: Add Order Line Items
@@ -71,25 +83,32 @@ Click "Create Order" to submit
 3. **Order Event**: Creates an initial event in `order_events` table to track the order creation
 
 4. **Dashboard Update**: The order will immediately appear in:
-   - Buyer dashboard (Orders tab)
-   - Matches tab (View Order button)
-   - Order detail page
+   - **To Pay tab** (if status is "signed")
+   - **Ordered tab** (if status is processing/preparation/in_production/manufacturing/delivering/in_transit)
+   - **History tab** (if status is delivered/completed/cancelled)
+   - Order detail page at `/orders/{order_id}`
 
 ## Example Workflow
 
 1. Create a match using AI Search or manual onboarding
 2. Use `/admin-test-matches` to approve the match (change from "new_match" to "contacted")
-3. The match appears in Dashboard → Matches tab
+3. The match appears in Dashboard → Requests tab
 4. Use `/admin-create-order` to create an order for that request
-5. "View Order" button appears in the Matches tab
-6. Click "View Order" to see the order details
+5. Choose a status:
+   - **"signed"** → Order appears in **To Pay tab**
+   - **"delivering"** → Order appears in **Ordered tab**
+   - **"completed"** → Order appears in **History tab**
+6. View the order in the appropriate dashboard tab
 
 ## Important Notes
 
 - ⚠️ This is a **testing tool only** - remove before production
 - The request must have an assigned OEM to create an order
 - All prices are in THB (Thai Baht)
-- Order statuses match the database enum: signed, preparation, manufacturing, delivering, completed, cancelled
+- Order statuses:
+  - **To Pay:** signed
+  - **Ordered:** processing, preparation, in_production, manufacturing, delivering, in_transit
+  - **History:** delivered, completed, cancelled
 - Created orders are **real database records**, not mock data
 
 ## Cleanup

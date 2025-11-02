@@ -5,6 +5,7 @@ import Navigation from "@/components/Navigation";
 import ReviewsList from "@/components/ReviewsList";
 import CreateReviewDialog from "@/components/CreateReviewDialog";
 import BookmarkButton from "@/components/BookmarkButton";
+import ProductsTabContent from "@/components/products/ProductsTabContent";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -397,11 +398,10 @@ export default async function OEMProfile({
 
           {/* Tabs */}
           <Tabs defaultValue="overview" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="overview">Overview</TabsTrigger>
-              <TabsTrigger value="previous-products">
-                Previous Products
-              </TabsTrigger>
+              <TabsTrigger value="products">Products</TabsTrigger>
+              <TabsTrigger value="previous-products">Portfolio</TabsTrigger>
               <TabsTrigger value="certifications">Certifications</TabsTrigger>
               <TabsTrigger value="reviews">Reviews</TabsTrigger>
             </TabsList>
@@ -464,6 +464,10 @@ export default async function OEMProfile({
                   </div>
                 </div>
               </Card>
+            </TabsContent>
+
+            <TabsContent value="products" className="space-y-4">
+              <ProductsTabContent oemOrgId={organization.id} oemSlug={slug} />
             </TabsContent>
 
             <TabsContent value="previous-products" className="space-y-4">

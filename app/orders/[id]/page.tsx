@@ -1,13 +1,21 @@
 "use client";
 
-import { use } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { use, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import Navigation from "@/components/Navigation";
 import ProtectedClient from "@/components/ProtectedClient";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
+import { PaymentModal, type PaymentBreakdown } from "@/components/PaymentModal";
+import { EscrowStatusBadge } from "@/components/EscrowStatusBadge";
+import {
+  PaymentTimeline,
+  type PaymentEvent,
+} from "@/components/PaymentTimeline";
 import {
   Package,
   Loader2,
@@ -18,6 +26,11 @@ import {
   MessageSquare,
   Download,
   FileText,
+  Truck,
+  AlertCircle,
+  X,
+  CreditCard,
+  Shield,
 } from "lucide-react";
 import { ROUTES } from "@/data/MockData";
 
@@ -41,6 +54,7 @@ type OrderData = {
   id: string;
   status: string;
   created_at: string;
+  request_id?: string;
   oem_organization: {
     display_name: string;
   } | null;
@@ -89,6 +103,17 @@ const formatDateShort = (dateString: string) => {
 
 function OrderClient({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
+  const router = useRouter();
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const [isCancelling, setIsCancelling] = useState(false);
+
+  // Payment modal states
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [paymentType, setPaymentType] = useState<"deposit" | "balance">(
+    "deposit"
+  );
 
   // Fetch order from API
   const {
@@ -106,6 +131,129 @@ function OrderClient({ params }: { params: Promise<{ id: string }> }) {
       return data.order;
     },
   });
+
+  // Determine payment states based on order status
+  const depositPaid =
+    orderData?.status === "manufacturing" ||
+    orderData?.status === "delivering" ||
+    orderData?.status === "completed";
+
+  const balancePaid =
+    orderData?.status === "delivering" || orderData?.status === "completed";
+
+  const deliveryConfirmed = orderData?.status === "completed";
+
+  // Cancel order handler
+  const handleCancelOrder = async () => {
+    setIsCancelling(true);
+    try {
+      const response = await fetch(`/api/orders/${id}/cancel`, {
+        method: "POST",
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        // Success - show toast and redirect
+        toast({
+          title: "Order Cancelled",
+          description: "Your order has been cancelled successfully.",
+        });
+
+        // Invalidate queries to refresh data
+        queryClient.invalidateQueries({ queryKey: ["order", id] });
+        queryClient.invalidateQueries({ queryKey: ["orders"] });
+
+        // Redirect to dashboard after a short delay
+        setTimeout(() => {
+          router.push("/dashboard/buyer");
+        }, 1500);
+      } else {
+        // Error from API
+        toast({
+          title: "Error",
+          description: data.error || "Failed to cancel order",
+          variant: "destructive",
+        });
+        setShowCancelDialog(false);
+      }
+    } catch (error) {
+      console.error("Failed to cancel order:", error);
+      toast({
+        title: "Error",
+        description: "An error occurred while cancelling the order",
+        variant: "destructive",
+      });
+      setShowCancelDialog(false);
+    } finally {
+      setIsCancelling(false);
+    }
+  };
+
+  // Message OEM handler
+  const handleMessageOEM = () => {
+    if (orderData?.request_id) {
+      router.push(`/messages?requestId=${orderData.request_id}`);
+    } else {
+      alert("Message OEM - Coming soon!");
+    }
+  };
+
+  // Payment handlers
+  const handleOpenPayment = (type: "deposit" | "balance") => {
+    setPaymentType(type);
+    setShowPaymentModal(true);
+  };
+
+  const handlePaymentComplete = () => {
+    // Refresh order data after payment
+    queryClient.invalidateQueries({ queryKey: ["order", id] });
+    queryClient.invalidateQueries({ queryKey: ["buyer-orders"] });
+  };
+
+  const handleConfirmDelivery = async () => {
+    try {
+      // Call API to update order status to completed
+      const response = await fetch(`/api/orders/${id}/complete`, {
+        method: "POST",
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to confirm delivery");
+      }
+
+      // Show success toast
+      toast({
+        title: "เงินถูกโอนให้ OEM แล้ว",
+        description: `ยอดเงิน ${formatCurrency(calculatePayment(total).totalToOEM, currency)} ถูกโอนให้ OEM (หักค่าบริการ 5%)`,
+      });
+
+      // Refresh order data
+      queryClient.invalidateQueries({ queryKey: ["order", id] });
+      queryClient.invalidateQueries({ queryKey: ["buyer-orders"] });
+    } catch (err) {
+      console.error("Delivery confirmation error:", err);
+      toast({
+        title: "เกิดข้อผิดพลาด",
+        description: "ไม่สามารถยืนยันการรับสินค้าได้",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Download invoice handler
+  const handleDownloadInvoice = () => {
+    alert("Download invoice - Coming soon!");
+  };
+
+  // View contract handler
+  const handleViewContract = () => {
+    if (orderData?.request_id) {
+      router.push(`/results?id=${orderData.request_id}`);
+    } else {
+      alert("View contract - Coming soon!");
+    }
+  };
 
   if (isLoading) {
     return (
@@ -157,6 +305,83 @@ function OrderClient({ params }: { params: Promise<{ id: string }> }) {
 
   const currency = orderData.order_line_items[0]?.currency || "THB";
 
+  // Calculate payment breakdown
+  const calculatePayment = (orderTotal: number): PaymentBreakdown => {
+    const deposit = orderTotal * 0.3;
+    const balance = orderTotal * 0.7;
+    const serviceFee = orderTotal * 0.05;
+    const totalToOEM = orderTotal - serviceFee;
+
+    return {
+      subtotal: orderTotal,
+      deposit,
+      balance,
+      serviceFee,
+      totalToOEM,
+      totalFromBuyer: orderTotal,
+      currency,
+    };
+  };
+
+  // Mock payment timeline data
+  const mockPaymentEvents: PaymentEvent[] = [];
+  if (depositPaid) {
+    mockPaymentEvents.push({
+      id: "1",
+      type: "deposit",
+      amount: calculatePayment(total).deposit,
+      currency,
+      status: "completed",
+      timestamp: new Date().toISOString(),
+      description: "Initial deposit payment received",
+    });
+  }
+  if (balancePaid) {
+    mockPaymentEvents.push({
+      id: "2",
+      type: "balance",
+      amount: calculatePayment(total).balance,
+      currency,
+      status: "completed",
+      timestamp: new Date().toISOString(),
+      description: "Balance payment received before shipment",
+    });
+  }
+  if (deliveryConfirmed) {
+    mockPaymentEvents.push({
+      id: "3",
+      type: "service_fee",
+      amount: calculatePayment(total).serviceFee,
+      currency,
+      status: "completed",
+      timestamp: new Date().toISOString(),
+      description: "Platform service fee (5%)",
+    });
+    mockPaymentEvents.push({
+      id: "4",
+      type: "release",
+      amount: calculatePayment(total).totalToOEM,
+      currency,
+      status: "completed",
+      timestamp: new Date().toISOString(),
+      description: "Payment released to OEM",
+    });
+  }
+
+  // Determine escrow status
+  const getEscrowStatus = () => {
+    if (deliveryConfirmed) return "released";
+    if (depositPaid || balancePaid) return "held";
+    return "pending";
+  };
+
+  const escrowAmount =
+    depositPaid && balancePaid
+      ? total
+      : depositPaid
+        ? calculatePayment(total).deposit
+        : 0;
+
   const currentStepIndex = ORDER_STEPS.indexOf(
     orderData.status as (typeof ORDER_STEPS)[number]
   );
@@ -206,6 +431,113 @@ function OrderClient({ params }: { params: Promise<{ id: string }> }) {
               </div>
               <h1 className="text-4xl font-bold mb-4">Order Tracking</h1>
             </div>
+
+            {/* Status-specific Alert Banner */}
+            {orderData.status === "signed" && (
+              <Card className="p-4 mb-6 bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800">
+                <div className="flex items-start gap-3">
+                  <AlertCircle className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5" />
+                  <div>
+                    <h4 className="font-semibold text-blue-900 dark:text-blue-100 mb-1">
+                      Payment Pending
+                    </h4>
+                    <p className="text-sm text-blue-800 dark:text-blue-200">
+                      Your order is awaiting payment confirmation. Once payment
+                      is received, production will begin.
+                    </p>
+                  </div>
+                </div>
+              </Card>
+            )}
+
+            {(orderData.status === "processing" ||
+              orderData.status === "preparation") && (
+              <Card className="p-4 mb-6 bg-amber-50 dark:bg-amber-950 border-amber-200 dark:border-amber-800">
+                <div className="flex items-start gap-3">
+                  <Clock className="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5" />
+                  <div>
+                    <h4 className="font-semibold text-amber-900 dark:text-amber-100 mb-1">
+                      Preparing Your Order
+                    </h4>
+                    <p className="text-sm text-amber-800 dark:text-amber-200">
+                      The OEM is currently preparing materials and setting up
+                      production for your order.
+                    </p>
+                  </div>
+                </div>
+              </Card>
+            )}
+
+            {(orderData.status === "in_production" ||
+              orderData.status === "manufacturing") && (
+              <Card className="p-4 mb-6 bg-purple-50 dark:bg-purple-950 border-purple-200 dark:border-purple-800">
+                <div className="flex items-start gap-3">
+                  <Factory className="h-5 w-5 text-purple-600 dark:text-purple-400 mt-0.5" />
+                  <div>
+                    <h4 className="font-semibold text-purple-900 dark:text-purple-100 mb-1">
+                      Manufacturing in Progress
+                    </h4>
+                    <p className="text-sm text-purple-800 dark:text-purple-200">
+                      Your order is currently being manufactured. We&apos;ll
+                      notify you when it&apos;s ready for shipping.
+                    </p>
+                  </div>
+                </div>
+              </Card>
+            )}
+
+            {(orderData.status === "delivering" ||
+              orderData.status === "in_transit") && (
+              <Card className="p-4 mb-6 bg-indigo-50 dark:bg-indigo-950 border-indigo-200 dark:border-indigo-800">
+                <div className="flex items-start gap-3">
+                  <Truck className="h-5 w-5 text-indigo-600 dark:text-indigo-400 mt-0.5" />
+                  <div>
+                    <h4 className="font-semibold text-indigo-900 dark:text-indigo-100 mb-1">
+                      On the Way!
+                    </h4>
+                    <p className="text-sm text-indigo-800 dark:text-indigo-200">
+                      Your order has been shipped and is on its way to you.
+                      Track your shipment for real-time updates.
+                    </p>
+                  </div>
+                </div>
+              </Card>
+            )}
+
+            {(orderData.status === "delivered" ||
+              orderData.status === "completed") && (
+              <Card className="p-4 mb-6 bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800">
+                <div className="flex items-start gap-3">
+                  <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400 mt-0.5" />
+                  <div>
+                    <h4 className="font-semibold text-green-900 dark:text-green-100 mb-1">
+                      Order Completed
+                    </h4>
+                    <p className="text-sm text-green-800 dark:text-green-200">
+                      Your order has been successfully delivered! Thank you for
+                      your business.
+                    </p>
+                  </div>
+                </div>
+              </Card>
+            )}
+
+            {orderData.status === "cancelled" && (
+              <Card className="p-4 mb-6 bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800">
+                <div className="flex items-start gap-3">
+                  <X className="h-5 w-5 text-red-600 dark:text-red-400 mt-0.5" />
+                  <div>
+                    <h4 className="font-semibold text-red-900 dark:text-red-100 mb-1">
+                      Order Cancelled
+                    </h4>
+                    <p className="text-sm text-red-800 dark:text-red-200">
+                      This order has been cancelled. If you have questions,
+                      please contact the OEM.
+                    </p>
+                  </div>
+                </div>
+              </Card>
+            )}
 
             {/* Summary Card */}
             <Card className="p-6 mb-6">
@@ -349,6 +681,198 @@ function OrderClient({ params }: { params: Promise<{ id: string }> }) {
               </div>
             </Card>
 
+            {/* Payment & Escrow Section */}
+            <Card className="p-6 mb-6">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-lg font-semibold flex items-center gap-2">
+                  <CreditCard className="h-5 w-5 text-primary" />
+                  Payment Information
+                </h3>
+                <EscrowStatusBadge
+                  status={getEscrowStatus()}
+                  amount={escrowAmount}
+                  currency={currency}
+                />
+              </div>
+
+              <div className="grid md:grid-cols-2 gap-6">
+                {/* Left: Payment Actions */}
+                <div className="space-y-4">
+                  {/* Payment Breakdown */}
+                  <div className="bg-muted/30 rounded-lg p-4 space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">
+                        Order Total:
+                      </span>
+                      <span className="font-semibold">
+                        {formatCurrency(total, currency)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">
+                        Deposit (30%):
+                      </span>
+                      <span className="font-semibold">
+                        {formatCurrency(
+                          calculatePayment(total).deposit,
+                          currency
+                        )}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">
+                        Balance (70%):
+                      </span>
+                      <span className="font-semibold">
+                        {formatCurrency(
+                          calculatePayment(total).balance,
+                          currency
+                        )}
+                      </span>
+                    </div>
+                    <div className="pt-2 border-t flex justify-between text-xs text-muted-foreground">
+                      <span>Service Fee (5%):</span>
+                      <span>
+                        {formatCurrency(
+                          calculatePayment(total).serviceFee,
+                          currency
+                        )}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>OEM Receives:</span>
+                      <span>
+                        {formatCurrency(
+                          calculatePayment(total).totalToOEM,
+                          currency
+                        )}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Payment Actions */}
+                  <div className="space-y-3">
+                    {!depositPaid && (
+                      <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                        <div className="flex items-start gap-2 mb-3">
+                          <Shield className="h-5 w-5 text-blue-600 mt-0.5" />
+                          <div className="flex-1">
+                            <p className="font-medium text-sm">
+                              Pay Deposit to Start Production
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              30% deposit required. Funds held in escrow.
+                            </p>
+                          </div>
+                        </div>
+                        <Button
+                          onClick={() => handleOpenPayment("deposit")}
+                          className="w-full"
+                        >
+                          <CreditCard className="h-4 w-4 mr-2" />
+                          Pay Deposit{" "}
+                          {formatCurrency(
+                            calculatePayment(total).deposit,
+                            currency
+                          )}
+                        </Button>
+                      </div>
+                    )}
+
+                    {depositPaid && !balancePaid && (
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2 text-sm text-green-600">
+                          <CheckCircle2 className="h-4 w-4" />
+                          <span>Deposit Paid</span>
+                        </div>
+                        <div className="bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
+                          <div className="flex items-start gap-2 mb-3">
+                            <AlertCircle className="h-5 w-5 text-yellow-600 mt-0.5" />
+                            <div className="flex-1">
+                              <p className="font-medium text-sm">
+                                Balance Payment Required
+                              </p>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                Pay before shipment. Funds held in escrow.
+                              </p>
+                            </div>
+                          </div>
+                          <Button
+                            onClick={() => handleOpenPayment("balance")}
+                            className="w-full"
+                          >
+                            <CreditCard className="h-4 w-4 mr-2" />
+                            Pay Balance{" "}
+                            {formatCurrency(
+                              calculatePayment(total).balance,
+                              currency
+                            )}
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+
+                    {depositPaid && balancePaid && !deliveryConfirmed && (
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2 text-sm text-green-600">
+                          <CheckCircle2 className="h-4 w-4" />
+                          <span>Full Payment Received</span>
+                        </div>
+                        <div className="bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+                          <div className="flex items-start gap-2 mb-3">
+                            <Package className="h-5 w-5 text-green-600 mt-0.5" />
+                            <div className="flex-1">
+                              <p className="font-medium text-sm">
+                                Confirm Delivery
+                              </p>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                Once you receive and inspect the products,
+                                confirm to release payment to OEM.
+                              </p>
+                            </div>
+                          </div>
+                          <Button
+                            onClick={handleConfirmDelivery}
+                            variant="default"
+                            className="w-full"
+                          >
+                            <CheckCircle2 className="h-4 w-4 mr-2" />
+                            Confirm Delivery & Release Payment
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+
+                    {deliveryConfirmed && (
+                      <div className="bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+                        <div className="flex items-center gap-2 text-green-700 dark:text-green-400">
+                          <CheckCircle2 className="h-5 w-5" />
+                          <div>
+                            <p className="font-medium">Payment Released</p>
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                              {formatCurrency(
+                                calculatePayment(total).totalToOEM,
+                                currency
+                              )}{" "}
+                              transferred to OEM
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Right: Payment Timeline */}
+                <div>
+                  <h4 className="font-medium mb-4 text-sm text-muted-foreground">
+                    Payment History
+                  </h4>
+                  <PaymentTimeline events={mockPaymentEvents} />
+                </div>
+              </div>
+            </Card>
+
             <div className="grid md:grid-cols-3 gap-6 mb-6">
               {/* Order Items */}
               <Card className="p-6 md:col-span-2">
@@ -415,7 +939,10 @@ function OrderClient({ params }: { params: Promise<{ id: string }> }) {
 
                   <div className="space-y-3">
                     <div>
-                      <p className="text-sm text-muted-foreground mb-1">OEM</p>
+                      <p className="text-sm text-muted-foreground mb-1">
+                        <Factory className="h-4 w-4 inline mr-1" />
+                        OEM
+                      </p>
                       <p className="font-medium">
                         {orderData.oem_organization?.display_name || "N/A"}
                       </p>
@@ -430,6 +957,32 @@ function OrderClient({ params }: { params: Promise<{ id: string }> }) {
                         {formatDate(orderData.created_at)}
                       </p>
                     </div>
+
+                    <div>
+                      <p className="text-sm text-muted-foreground mb-1 flex items-center gap-1">
+                        <Truck className="h-4 w-4" />
+                        Estimated Delivery
+                      </p>
+                      <p className="font-medium">
+                        {orderData.status === "completed" ||
+                        orderData.status === "delivered"
+                          ? "Delivered"
+                          : orderData.status === "cancelled"
+                            ? "Cancelled"
+                            : "2-3 weeks"}
+                      </p>
+                    </div>
+
+                    {orderData.request_id && (
+                      <div>
+                        <p className="text-sm text-muted-foreground mb-1">
+                          Request ID
+                        </p>
+                        <p className="font-mono text-xs">
+                          {orderData.request_id.slice(0, 12)}...
+                        </p>
+                      </div>
+                    )}
                   </div>
                 </Card>
 
@@ -438,20 +991,50 @@ function OrderClient({ params }: { params: Promise<{ id: string }> }) {
                   <h3 className="text-lg font-semibold mb-4">Actions</h3>
 
                   <div className="space-y-2">
-                    <Button className="w-full justify-start" variant="outline">
+                    <Button
+                      className="w-full justify-start"
+                      variant="outline"
+                      onClick={handleMessageOEM}
+                    >
                       <MessageSquare className="h-4 w-4 mr-2" />
                       Message OEM
                     </Button>
 
-                    <Button className="w-full justify-start" variant="outline">
+                    <Button
+                      className="w-full justify-start"
+                      variant="outline"
+                      onClick={handleDownloadInvoice}
+                    >
                       <Download className="h-4 w-4 mr-2" />
                       Download Invoice
                     </Button>
 
-                    <Button className="w-full justify-start" variant="outline">
+                    <Button
+                      className="w-full justify-start"
+                      variant="outline"
+                      onClick={handleViewContract}
+                    >
                       <FileText className="h-4 w-4 mr-2" />
                       View Contract
                     </Button>
+
+                    {/* Cancel button - only show for certain statuses */}
+                    {![
+                      "cancelled",
+                      "completed",
+                      "delivered",
+                      "in_transit",
+                      "delivering",
+                    ].includes(orderData.status) && (
+                      <Button
+                        className="w-full justify-start text-destructive hover:text-destructive"
+                        variant="outline"
+                        onClick={() => setShowCancelDialog(true)}
+                      >
+                        <X className="h-4 w-4 mr-2" />
+                        Cancel Order
+                      </Button>
+                    )}
                   </div>
                 </Card>
 
@@ -497,8 +1080,69 @@ function OrderClient({ params }: { params: Promise<{ id: string }> }) {
                   )}
               </div>
             </div>
+
+            {/* Cancel Order Confirmation Dialog */}
+            {showCancelDialog && (
+              <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                <Card className="max-w-md w-full p-6">
+                  <div className="flex items-start gap-4 mb-4">
+                    <div className="p-2 rounded-full bg-destructive/10">
+                      <AlertCircle className="h-6 w-6 text-destructive" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-lg font-semibold mb-2">
+                        Cancel Order?
+                      </h3>
+                      <p className="text-sm text-muted-foreground mb-4">
+                        Are you sure you want to cancel this order? This action
+                        cannot be undone. You may need to contact the OEM if the
+                        order is already in production.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-3 justify-end">
+                    <Button
+                      variant="outline"
+                      onClick={() => setShowCancelDialog(false)}
+                      disabled={isCancelling}
+                    >
+                      Keep Order
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      onClick={handleCancelOrder}
+                      disabled={isCancelling}
+                    >
+                      {isCancelling ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Cancelling...
+                        </>
+                      ) : (
+                        "Cancel Order"
+                      )}
+                    </Button>
+                  </div>
+                </Card>
+              </div>
+            )}
           </div>
         </div>
+
+        {/* Payment Modal */}
+        <PaymentModal
+          open={showPaymentModal}
+          onOpenChange={setShowPaymentModal}
+          orderId={id}
+          orderNumber={id}
+          total={total}
+          currency={currency}
+          paymentType={paymentType}
+          breakdown={calculatePayment(total)}
+          escrowEnabled={true}
+          onPaymentComplete={handlePaymentComplete}
+        />
       </div>
     </ProtectedClient>
   );

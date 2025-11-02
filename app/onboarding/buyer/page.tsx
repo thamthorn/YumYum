@@ -2,6 +2,7 @@
 
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -34,9 +35,8 @@ type FormData = {
   industry: string;
   productType: string;
   moqRange: number[];
+  priceRange: number[];
   timeline: string;
-  location: string;
-  certifications: string[];
   prototypeNeeded: boolean;
   crossBorder: boolean;
 };
@@ -52,15 +52,14 @@ export default function BuyerOnboarding() {
     companyName: "",
     industry: "",
     productType: "",
-    moqRange: [100, 5000],
+    moqRange: [1, 5000],
+    priceRange: [0, 1000],
     timeline: "",
-    location: "",
-    certifications: [],
     prototypeNeeded: false,
     crossBorder: false,
   });
 
-  const totalSteps = quickMatch ? 2 : aiSearch ? 1 : 4;
+  const totalSteps = aiSearch ? 1 : 2; // Only 2 steps for Quick Match, 1 for AI
   const progress = (step / totalSteps) * 100;
 
   const industries = useMemo(
@@ -76,32 +75,60 @@ export default function BuyerOnboarding() {
     []
   );
 
-  const certifications = ["ISO", "GMP", "FDA", "Halal", "Organic", "CE"];
+  // Unused - kept for future implementation
+  // const certifications = [
+  //   "ISO 9001:2015",
+  //   "ISO 9001",
+  //   "GMP",
+  //   "OEKO-TEX",
+  //   "Organic",
+  //   "ISO 22000",
+  //   "HACCP",
+  //   "FDA",
+  //   "Natural Certification",
+  //   "ISO 22716",
+  //   "CE Mark",
+  //   "Safety Standards",
+  //   "Organic Certification",
+  //   "ISO 13485",
+  // ];
 
+  // Fetch product categories from database filtered by industry only
+  const { data: productCategories = [] } = useQuery<string[]>({
+    queryKey: ["product-categories", formData.industry],
+    queryFn: async () => {
+      if (!formData.industry) {
+        return [];
+      }
+      const params = new URLSearchParams({
+        industry: formData.industry,
+      });
+
+      const response = await fetch(
+        `/api/product-categories?${params.toString()}`
+      );
+      if (!response.ok) {
+        return [];
+      }
+      const body = await response.json();
+      return body.data || [];
+    },
+    enabled: Boolean(formData.industry), // Only fetch when industry is selected
+  });
+
+  // Clear product type when industry changes
   useEffect(() => {
-    if (quickMatch && !formData.location) {
-      updateFormData("location", "any");
+    if (formData.productType) {
+      updateFormData("productType", "");
     }
-  }, [quickMatch, formData.location]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formData.industry]);
 
   const updateFormData = (
     key: keyof FormData,
-    value: string | number[] | boolean | string[]
+    value: string | number[] | boolean
   ) => {
     setFormData((prev) => ({ ...prev, [key]: value }));
-  };
-
-  const toggleCertification = (cert: string) => {
-    setFormData((prev) => {
-      const current = prev.certifications;
-      if (current.includes(cert)) {
-        return {
-          ...prev,
-          certifications: current.filter((c) => c !== cert),
-        };
-      }
-      return { ...prev, certifications: [...current, cert] };
-    });
   };
 
   const isStepValid = () => {
@@ -110,19 +137,20 @@ export default function BuyerOnboarding() {
       return aiSearchQuery.trim().length >= 5;
     }
 
-    if ((quickMatch && step === 1) || (!quickMatch && step === 2)) {
+    // Quick Match step 1: Company info + Industry + Product Type
+    if (step === 1) {
       return (
         formData.companyName.trim().length > 0 &&
         formData.industry.trim().length > 0 &&
         formData.productType.trim().length > 0
       );
     }
-    if ((quickMatch && step === 2) || (!quickMatch && step === 3)) {
+
+    // Quick Match step 2: Timeline
+    if (step === 2) {
       return formData.timeline.trim().length > 0;
     }
-    if (!quickMatch && step === 4) {
-      return formData.location.trim().length > 0;
-    }
+
     return true;
   };
 
@@ -162,7 +190,7 @@ export default function BuyerOnboarding() {
         return;
       }
 
-      // Handle regular onboarding (Quick Match or Full Flow)
+      // Handle Quick Match onboarding
       const response = await fetch("/api/onboarding/buyer", {
         method: "POST",
         headers: {
@@ -170,6 +198,9 @@ export default function BuyerOnboarding() {
         },
         body: JSON.stringify({
           ...formData,
+          location: undefined, // Remove location (moved to Results filter)
+          certifications: [], // Remove certifications (moved to Results filter)
+          crossBorder: false, // Default value
           quickMatch,
         }),
       });
@@ -181,7 +212,19 @@ export default function BuyerOnboarding() {
         );
       }
 
-      sessionStorage.setItem("searchMode", quickMatch ? "quick" : "full");
+      sessionStorage.setItem("searchMode", "quick");
+
+      // Store user preferences for results page filtering
+      sessionStorage.setItem(
+        "userPreferences",
+        JSON.stringify({
+          moqRange: formData.moqRange,
+          priceRange: formData.priceRange,
+          timeline: formData.timeline,
+          productType: formData.productType,
+          industry: formData.industry,
+        })
+      );
 
       toast.success("Perfect! Finding your matches...", {
         icon: <CheckCircle2 className="h-4 w-4" />,
@@ -281,12 +324,11 @@ export default function BuyerOnboarding() {
                         Choose Your Flow
                       </h2>
                       <p className="text-muted-foreground">
-                        Get instant matches, use AI, or provide detailed
-                        requirements
+                        Choose how you want to find your perfect OEM match
                       </p>
                     </div>
 
-                    <div className="grid md:grid-cols-3 gap-4">
+                    <div className="grid md:grid-cols-2 gap-4 max-w-2xl mx-auto">
                       <Card
                         className="p-6 cursor-pointer hover:border-primary transition-all border-2"
                         onClick={handleQuickMatch}
@@ -326,27 +368,6 @@ export default function BuyerOnboarding() {
                         <p className="text-sm text-muted-foreground">
                           Describe what you need and let AI find the best
                           matches.
-                        </p>
-                      </Card>
-
-                      <Card
-                        className="p-6 cursor-pointer hover:border-primary transition-all border-2"
-                        onClick={() => setStep(2)}
-                      >
-                        <div className="flex items-center gap-3 mb-3">
-                          <div className="h-10 w-10 rounded-lg bg-info/10 flex items-center justify-center">
-                            <CheckCircle2 className="h-5 w-5 text-info" />
-                          </div>
-                          <div>
-                            <h3 className="font-semibold">Full Flow</h3>
-                            <Badge variant="secondary" className="text-xs">
-                              ~5 min
-                            </Badge>
-                          </div>
-                        </div>
-                        <p className="text-sm text-muted-foreground">
-                          Detailed requirements for precise matching and better
-                          results.
                         </p>
                       </Card>
                     </div>
@@ -441,19 +462,40 @@ export default function BuyerOnboarding() {
 
                     <div className="space-y-2">
                       <Label htmlFor="product">Product Type</Label>
-                      <Input
-                        id="product"
-                        placeholder="E.g., T-shirts, Cosmetic cream, Snack bars"
+                      <Select
                         value={formData.productType}
-                        onChange={(e) =>
-                          updateFormData("productType", e.target.value)
+                        onValueChange={(value) =>
+                          updateFormData("productType", value)
                         }
-                      />
+                      >
+                        <SelectTrigger id="product">
+                          <SelectValue placeholder="Select product category" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {productCategories.length > 0 ? (
+                            productCategories.map((category) => (
+                              <SelectItem key={category} value={category}>
+                                {category}
+                              </SelectItem>
+                            ))
+                          ) : (
+                            <SelectItem value="loading" disabled>
+                              Loading categories...
+                            </SelectItem>
+                          )}
+                        </SelectContent>
+                      </Select>
+                      {formData.industry && productCategories.length === 0 && (
+                        <p className="text-xs text-muted-foreground">
+                          No categories available. Try selecting a different
+                          industry.
+                        </p>
+                      )}
                     </div>
                   </div>
                 ) : null}
 
-                {(quickMatch && step === 2) || (!quickMatch && step === 3) ? (
+                {quickMatch && step === 2 ? (
                   <div className="space-y-6">
                     <h2 className="text-2xl font-semibold">Requirements</h2>
 
@@ -465,14 +507,34 @@ export default function BuyerOnboarding() {
                           onValueChange={(value) =>
                             updateFormData("moqRange", value)
                           }
-                          min={50}
+                          min={1}
                           max={10000}
-                          step={50}
+                          step={1}
                           className="mb-2"
                         />
                         <div className="flex justify-between text-sm text-muted-foreground">
                           <span>{formData.moqRange[0]} units</span>
                           <span>{formData.moqRange[1]} units</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Price Range (Per Unit in THB)</Label>
+                      <div className="pt-2">
+                        <Slider
+                          value={formData.priceRange}
+                          onValueChange={(value) =>
+                            updateFormData("priceRange", value)
+                          }
+                          min={0}
+                          max={10000}
+                          step={10}
+                          className="mb-2"
+                        />
+                        <div className="flex justify-between text-sm text-muted-foreground">
+                          <span>฿{formData.priceRange[0]}</span>
+                          <span>฿{formData.priceRange[1]}</span>
                         </div>
                       </div>
                     </div>
@@ -516,69 +578,6 @@ export default function BuyerOnboarding() {
                     </div>
                   </div>
                 ) : null}
-
-                {!quickMatch && step === 4 && (
-                  <div className="space-y-6">
-                    <h2 className="text-2xl font-semibold">
-                      Additional Preferences
-                    </h2>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="location">Preferred Location</Label>
-                      <Select
-                        value={formData.location}
-                        onValueChange={(value) =>
-                          updateFormData("location", value)
-                        }
-                      >
-                        <SelectTrigger id="location">
-                          <SelectValue placeholder="Select preferred location" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="any">Any Location</SelectItem>
-                          <SelectItem value="thailand">Thailand</SelectItem>
-                          <SelectItem value="vietnam">Vietnam</SelectItem>
-                          <SelectItem value="china">China</SelectItem>
-                          <SelectItem value="sea">Southeast Asia</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label>Required Certifications</Label>
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                        {certifications.map((cert) => (
-                          <div
-                            key={cert}
-                            className="flex items-center space-x-2"
-                          >
-                            <Checkbox
-                              id={cert}
-                              checked={formData.certifications.includes(cert)}
-                              onCheckedChange={() => toggleCertification(cert)}
-                            />
-                            <Label htmlFor={cert} className="cursor-pointer">
-                              {cert}
-                            </Label>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="crossBorder"
-                        checked={formData.crossBorder}
-                        onCheckedChange={(checked) =>
-                          updateFormData("crossBorder", checked as boolean)
-                        }
-                      />
-                      <Label htmlFor="crossBorder" className="cursor-pointer">
-                        Must support cross-border shipping
-                      </Label>
-                    </div>
-                  </div>
-                )}
 
                 <div className="flex justify-between mt-8 pt-6 border-t border-border">
                   {step > 1 && (

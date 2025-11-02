@@ -3,13 +3,16 @@
 import Link from "next/link";
 import Image from "next/image";
 import { Suspense, useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useSearchParams } from "next/navigation";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import Navigation from "@/components/Navigation";
 import ProtectedClient from "@/components/ProtectedClient";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { EscrowStatusBadge } from "@/components/EscrowStatusBadge";
+import { PaymentModal } from "@/components/PaymentModal";
 import {
   Package,
   MessageSquare,
@@ -17,24 +20,20 @@ import {
   Clock,
   CheckCircle2,
   AlertCircle,
-  TrendingUp,
   MapPin,
-  Zap,
   Target,
   Building2,
   FileText,
-  Trash2,
   Bookmark,
   BookmarkCheck,
   RefreshCw,
   FileIcon,
+  Truck,
+  Eye,
+  Shield,
+  CreditCard,
 } from "lucide-react";
-import {
-  ROUTES,
-  COPY,
-  getMatchStatusVariant,
-  getScaleBadgeVariant,
-} from "@/data/MockData";
+import { ROUTES, COPY } from "@/data/MockData";
 import { useSupabase } from "@/lib/supabase/session-context";
 import { toast } from "sonner";
 
@@ -72,25 +71,26 @@ type RequestResponse = {
   } | null;
 };
 
-type MatchResponse = {
-  id: string;
-  status: string;
-  score: number | null;
-  digest: Record<string, unknown> | null; // JSON from database
-  createdAt: string | null;
-  updatedAt: string | null;
-  oem: {
-    organizationId: string;
-    name: string;
-    slug: string | null;
-    industry: string | null;
-    location: string | null;
-    scale: "small" | "medium" | "large" | null;
-    rating: number | null;
-    totalReviews: number | null;
-    certifications: Array<{ name: string; issuedBy: string }>;
-  } | null;
-};
+// Unused - kept for future implementation
+// type MatchResponse = {
+//   id: string;
+//   status: string;
+//   score: number | null;
+//   digest: Record<string, unknown> | null; // JSON from database
+//   createdAt: string | null;
+//   updatedAt: string | null;
+//   oem: {
+//     organizationId: string;
+//     name: string;
+//     slug: string | null;
+//     industry: string | null;
+//     location: string | null;
+//     scale: "small" | "medium" | "large" | null;
+//     rating: number | null;
+//     totalReviews: number | null;
+//     certifications: Array<{ name: string; issuedBy: string }>;
+//   } | null;
+// };
 
 type SavedOemResponse = {
   oem_org_id: string;
@@ -102,11 +102,47 @@ type SavedOemResponse = {
   };
 };
 
+type OrderResponse = {
+  id: string;
+  oem_org_id: string;
+  request_id: string;
+  status: string;
+  total_value: number;
+  currency: string;
+  quantity_total: number;
+  unit: string;
+  created_at: string;
+  oem_organization: {
+    id: string;
+    slug: string | null;
+    display_name: string;
+  };
+  order_line_items: Array<{
+    id: string;
+    description: string;
+    quantity: number;
+    unit_price: number;
+  }>;
+};
+
 function DashboardContent() {
   const { session, supabase } = useSupabase();
   const queryClient = useQueryClient();
+  const searchParams = useSearchParams();
 
   const [activeRequestId, setActiveRequestId] = useState<string | null>(null);
+
+  // Payment Modal States
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState<OrderResponse | null>(
+    null
+  );
+  const [paymentType, setPaymentType] = useState<"deposit" | "balance">(
+    "deposit"
+  );
+
+  // Get active tab from URL query parameter
+  const activeTab = searchParams.get("tab") || "requests";
 
   const {
     data: requests = [],
@@ -126,26 +162,24 @@ function DashboardContent() {
     enabled: Boolean(session),
   });
 
-  const {
-    data: matches = [],
-    isLoading: isLoadingMatches,
-    error: matchesError,
-    refetch: refetchMatches,
-  } = useQuery<MatchResponse[]>({
-    queryKey: ["buyer-matches"],
-    queryFn: async () => {
-      const response = await fetch("/api/matches");
-      if (!response.ok) {
-        const body = await response.json().catch(() => null);
-        throw new Error(body?.error?.message ?? "Unable to load matches");
-      }
-      const body = (await response.json()) as { data: MatchResponse[] };
-      return body.data ?? [];
-    },
-    enabled: Boolean(session),
-    refetchInterval: 2000, // Auto-refetch every 2 seconds (faster updates)
-    refetchOnWindowFocus: true, // Refetch when window regains focus
-  });
+  // Unused - kept for future implementation
+  // const { data: matches = [], error: matchesError } = useQuery<MatchResponse[]>(
+  //   {
+  //     queryKey: ["buyer-matches"],
+  //     queryFn: async () => {
+  //       const response = await fetch("/api/matches");
+  //       if (!response.ok) {
+  //         const body = await response.json().catch(() => null);
+  //         throw new Error(body?.error?.message ?? "Unable to load matches");
+  //       }
+  //       const body = (await response.json()) as { data: MatchResponse[] };
+  //       return body.data ?? [];
+  //     },
+  //     enabled: Boolean(session),
+  //     refetchInterval: 2000, // Auto-refetch every 2 seconds (faster updates)
+  //     refetchOnWindowFocus: true, // Refetch when window regains focus
+  //   }
+  // );
 
   // Fetch saved OEMs
   const { data: savedOems = [], isLoading: isLoadingSavedOems } = useQuery<
@@ -164,8 +198,29 @@ function DashboardContent() {
   });
 
   // Fetch orders to check which matches have orders
-  const { data: orders = [] } = useQuery<
-    Array<{ id: string; oem_org_id: string }>
+  const { data: orders = [], isLoading: isLoadingOrders } = useQuery<
+    Array<{
+      id: string;
+      oem_org_id: string;
+      request_id: string;
+      status: string;
+      total_value: number;
+      currency: string;
+      quantity_total: number;
+      unit: string;
+      created_at: string;
+      oem_organization: {
+        id: string;
+        slug: string | null;
+        display_name: string;
+      };
+      order_line_items: Array<{
+        id: string;
+        description: string;
+        quantity: number;
+        unit_price: number;
+      }>;
+    }>
   >({
     queryKey: ["buyer-orders"],
     queryFn: async () => {
@@ -174,110 +229,173 @@ function DashboardContent() {
         return [];
       }
       const body = (await response.json()) as {
-        orders: Array<{ id: string; oem_org_id: string }>;
+        orders: Array<{
+          id: string;
+          oem_org_id: string;
+          request_id: string;
+          status: string;
+          total_value: number;
+          currency: string;
+          quantity_total: number;
+          unit: string;
+          created_at: string;
+          oem_organization: {
+            id: string;
+            slug: string | null;
+            display_name: string;
+          };
+          order_line_items: Array<{
+            id: string;
+            description: string;
+            quantity: number;
+            unit_price: number;
+          }>;
+        }>;
       };
       return body.orders ?? [];
     },
     enabled: Boolean(session),
   });
 
+  // Unused - kept for future implementation
   // Track which OEMs are saved for quick lookup
-  const savedOemIds = new Set(savedOems.map((s) => s.oem_org_id));
+  // const savedOemIds = new Set(savedOems.map((s) => s.oem_org_id));
 
   // Save OEM mutation
-  const saveOemMutation = useMutation({
-    mutationFn: async (oemOrgId: string) => {
-      const response = await fetch("/api/saved-oems", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ oemOrgId }),
-      });
-      if (!response.ok) {
-        const body = await response.json().catch(() => null);
-        throw new Error(body?.error ?? "Failed to save OEM");
-      }
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["saved-oems"] });
-      toast.success("OEM saved successfully");
-    },
-    onError: (error: Error) => {
-      toast.error(error.message);
-    },
-  });
+  // const saveOemMutation = useMutation({
+  //   mutationFn: async (oemOrgId: string) => {
+  //     const response = await fetch("/api/saved-oems", {
+  //       method: "POST",
+  //       headers: { "Content-Type": "application/json" },
+  //       body: JSON.stringify({ oemOrgId }),
+  //     });
+  //     if (!response.ok) {
+  //       const body = await response.json().catch(() => null);
+  //       throw new Error(body?.error ?? "Failed to save OEM");
+  //     }
+  //     return response.json();
+  //   },
+  //   onSuccess: () => {
+  //     queryClient.invalidateQueries({ queryKey: ["saved-oems"] });
+  //     toast.success("OEM saved successfully");
+  //   },
+  //   onError: (error: Error) => {
+  //     toast.error(error.message);
+  //   },
+  // });
 
   // Unsave OEM mutation
-  const unsaveOemMutation = useMutation({
-    mutationFn: async (oemOrgId: string) => {
-      const response = await fetch(`/api/saved-oems?oemOrgId=${oemOrgId}`, {
-        method: "DELETE",
-      });
-      if (!response.ok) {
-        const body = await response.json().catch(() => null);
-        throw new Error(body?.error ?? "Failed to remove saved OEM");
-      }
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["saved-oems"] });
-      toast.success("OEM removed from saved");
-    },
-    onError: (error: Error) => {
-      toast.error(error.message);
-    },
-  });
+  // const unsaveOemMutation = useMutation({
+  //   mutationFn: async (oemOrgId: string) => {
+  //     const response = await fetch(`/api/saved-oems?oemOrgId=${oemOrgId}`, {
+  //       method: "DELETE",
+  //     });
+  //     if (!response.ok) {
+  //       const body = await response.json().catch(() => null);
+  //       throw new Error(body?.error ?? "Failed to remove saved OEM");
+  //     }
+  //     return response.json();
+  //   },
+  //   onSuccess: () => {
+  //     queryClient.invalidateQueries({ queryKey: ["saved-oems"] });
+  //     toast.success("OEM removed from saved");
+  //   },
+  //   onError: (error: Error) => {
+  //     toast.error(error.message);
+  //   },
+  // });
 
-  const toggleSaveOem = (oemOrgId: string) => {
-    if (savedOemIds.has(oemOrgId)) {
-      unsaveOemMutation.mutate(oemOrgId);
-    } else {
-      saveOemMutation.mutate(oemOrgId);
-    }
-  };
+  // Unused - kept for future implementation
+  // const toggleSaveOem = (oemOrgId: string) => {
+  //   if (savedOemIds.has(oemOrgId)) {
+  //     unsaveOemMutation.mutate(oemOrgId);
+  //   } else {
+  //     saveOemMutation.mutate(oemOrgId);
+  //   }
+  // };
 
   // Clear matches mutation
-  const clearMatchesMutation = useMutation({
-    mutationFn: async () => {
-      const response = await fetch("/api/matches", {
-        method: "DELETE",
-      });
-      if (!response.ok) {
-        const body = await response.json().catch(() => null);
-        throw new Error(body?.error?.message ?? "Failed to clear matches");
-      }
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["buyer-matches"] });
-      toast.success("All matches cleared successfully");
-    },
-    onError: (error: Error) => {
-      toast.error(error.message);
-    },
-  });
+  // const clearMatchesMutation = useMutation({
+  //   mutationFn: async () => {
+  //     const response = await fetch("/api/matches", {
+  //       method: "DELETE",
+  //     });
+  //     if (!response.ok) {
+  //       const body = await response.json().catch(() => null);
+  //       throw new Error(body?.error?.message ?? "Failed to clear matches");
+  //     }
+  //     return response.json();
+  //   },
+  //   onSuccess: () => {
+  //     queryClient.invalidateQueries({ queryKey: ["buyer-matches"] });
+  //     toast.success("All matches cleared successfully");
+  //   },
+  //   onError: (error: Error) => {
+  //     toast.error(error.message);
+  //   },
+  // });
 
-  const handleClearMatches = () => {
-    if (matches.length === 0) {
-      toast.info("No matches to clear");
-      return;
-    }
+  // Unused - kept for future implementation
+  // const handleClearMatches = () => {
+  //   if (matches.length === 0) {
+  //     toast.info("No matches to clear");
+  //     return;
+  //   }
 
-    if (
-      confirm(
-        `Are you sure you want to clear all ${matches.length} matches? This action cannot be undone.`
-      )
-    ) {
-      clearMatchesMutation.mutate();
-    }
-  };
+  //   if (
+  //     confirm(
+  //       `Are you sure you want to clear all ${matches.length} matches? This action cannot be undone.`
+  //     )
+  //   ) {
+  //     clearMatchesMutation.mutate();
+  //   }
+  // };
 
   if (requestError) {
     toast.error(requestError.message);
   }
-  if (matchesError) {
-    toast.error(matchesError.message);
-  }
+
+  // Calculate total held in escrow (mock - should come from order payment status in real app)
+  const totalHeldInEscrow = orders
+    .filter(
+      (order) =>
+        order.status !== "cancelled" &&
+        order.status !== "completed" &&
+        order.status !== "delivered"
+    )
+    .reduce((sum, order) => sum + order.total_value, 0);
+
+  // Count orders with escrow protection
+  const escrowProtectedOrders = orders.filter(
+    (order) =>
+      order.status !== "cancelled" &&
+      order.status !== "completed" &&
+      order.status !== "delivered"
+  ).length;
+
+  // Handle opening payment modal
+  const handleOpenPayment = (
+    order: OrderResponse,
+    type: "deposit" | "balance"
+  ) => {
+    setSelectedOrder(order);
+    setPaymentType(type);
+    setShowPaymentModal(true);
+  };
+
+  // Handle payment completion
+  const handlePaymentComplete = () => {
+    setShowPaymentModal(false);
+    // Refresh orders
+    queryClient.invalidateQueries({ queryKey: ["buyer-orders"] });
+  };
+
+  const formatCurrency = (amount: number, currency: string = "THB") => {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: currency,
+    }).format(amount);
+  };
 
   const stats = [
     {
@@ -293,18 +411,20 @@ function DashboardContent() {
       color: "text-info",
     },
     {
+      label: "Held in Escrow",
+      value: totalHeldInEscrow > 0 ? formatCurrency(totalHeldInEscrow) : "฿0",
+      icon: Shield,
+      color: "text-blue-600",
+      subtitle:
+        escrowProtectedOrders > 0
+          ? `${escrowProtectedOrders} order${escrowProtectedOrders > 1 ? "s" : ""} protected`
+          : "No active escrow",
+    },
+    {
       label: "Saved OEMs",
       value: savedOems.length.toString(),
       icon: Heart,
       color: "text-destructive",
-    },
-    {
-      label: "Matches",
-      value: matches
-        .filter((m) => m.status !== "new_match" && m.status !== "New Match")
-        .length.toString(),
-      icon: TrendingUp,
-      color: "text-success",
     },
   ];
 
@@ -349,23 +469,48 @@ function DashboardContent() {
                   <div className="text-sm text-muted-foreground">
                     {stat.label}
                   </div>
+                  {stat.subtitle && (
+                    <div className="text-xs text-muted-foreground mt-1">
+                      {stat.subtitle}
+                    </div>
+                  )}
                 </Card>
               ))}
             </div>
 
-            <Tabs defaultValue="requests" className="space-y-6">
-              <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="requests" className="cursor-pointer">
-                  Requests
+            <Tabs value={activeTab} className="space-y-6">
+              <TabsList className="grid w-full grid-cols-4">
+                <TabsTrigger
+                  value="requests"
+                  className="cursor-pointer"
+                  asChild
+                >
+                  <Link href="/dashboard/buyer?tab=requests">
+                    <FileText className="h-4 w-4 mr-2" />
+                    Requests
+                  </Link>
                 </TabsTrigger>
-                <TabsTrigger value="matches" className="cursor-pointer">
-                  Matches
+                <TabsTrigger value="to-pay" className="cursor-pointer" asChild>
+                  <Link href="/dashboard/buyer?tab=to-pay">
+                    <AlertCircle className="h-4 w-4 mr-2" />
+                    To Pay
+                  </Link>
                 </TabsTrigger>
-                <TabsTrigger value="saved" className="cursor-pointer">
-                  Saved
+                <TabsTrigger value="ordered" className="cursor-pointer" asChild>
+                  <Link href="/dashboard/buyer?tab=ordered">
+                    <Package className="h-4 w-4 mr-2" />
+                    Ordered
+                  </Link>
+                </TabsTrigger>
+                <TabsTrigger value="history" className="cursor-pointer" asChild>
+                  <Link href="/dashboard/buyer?tab=history">
+                    <Clock className="h-4 w-4 mr-2" />
+                    History
+                  </Link>
                 </TabsTrigger>
               </TabsList>
 
+              {/* Requests Tab - Pending quotes */}
               <TabsContent value="requests" className="space-y-4">
                 {isLoadingRequests ? (
                   <Card className="p-6 text-center text-muted-foreground">
@@ -578,460 +723,359 @@ function DashboardContent() {
                 )}
               </TabsContent>
 
-              <TabsContent value="matches" className="space-y-4">
+              {/* To Pay Tab - Quote received, pending payment */}
+              <TabsContent value="to-pay" className="space-y-4">
                 <div className="mb-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <p className="text-muted-foreground">
-                      OEMs that have accepted and are engaged with your
-                      requests.
-                    </p>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => refetchMatches()}
-                        disabled={isLoadingMatches}
-                      >
-                        <RefreshCw
-                          className={`h-4 w-4 mr-2 ${isLoadingMatches ? "animate-spin" : ""}`}
-                        />
-                        Refresh
-                      </Button>
-                      {matches.filter(
-                        (m) =>
-                          m.status !== "new_match" && m.status !== "New Match"
-                      ).length > 0 && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={handleClearMatches}
-                          disabled={clearMatchesMutation.isPending}
-                          className="text-destructive hover:text-destructive"
-                        >
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          {clearMatchesMutation.isPending
-                            ? "Clearing..."
-                            : "Clear All Matches"}
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <Badge variant="outline">
-                      {matches.filter((m) => m.status === "contacted").length}{" "}
-                      contacted
-                    </Badge>
-                    <Badge variant="outline">
-                      {
-                        matches.filter(
-                          (m) =>
-                            m.status === "in_discussion" ||
-                            m.status === "In Discussion"
-                        ).length
-                      }{" "}
-                      in discussion
-                    </Badge>
-                  </div>
+                  <p className="text-muted-foreground mb-4">
+                    Orders and quotes awaiting payment to start production.
+                  </p>
                 </div>
 
-                {isLoadingMatches ? (
+                {isLoadingOrders && isLoadingRequests ? (
                   <Card className="p-6 text-center text-muted-foreground">
-                    Loading matches...
+                    Loading...
                   </Card>
-                ) : matches.filter(
-                    (match) =>
-                      match.oem !== null &&
-                      match.status !== "new_match" &&
-                      match.status !== "New Match"
-                  ).length === 0 ? (
+                ) : orders.filter((o) => o.status === "signed").length === 0 &&
+                  requests.filter((r) => r.status === "quote_received")
+                    .length === 0 ? (
                   <Card className="p-12 text-center text-muted-foreground">
-                    No confirmed matches yet. Your recommendations will appear
-                    here once OEMs accept your requests.
+                    <AlertCircle className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
+                    <p className="font-medium mb-2">No pending payments</p>
+                    <p className="text-sm">
+                      Orders and quotes will appear here when ready for payment
+                    </p>
                   </Card>
                 ) : (
-                  matches
-                    .filter(
-                      (match) =>
-                        match.oem !== null &&
-                        match.status !== "new_match" &&
-                        match.status !== "New Match"
-                    )
-                    .map((match) => {
-                      const oem = match.oem!;
-
-                      // Log OEM org ID for mock data setup
-                      if (process.env.NODE_ENV === "development") {
-                        console.log(
-                          "🔍 OEM org ID:",
-                          oem.organizationId,
-                          "| Name:",
-                          oem.name
-                        );
-                      }
-
-                      const scale =
-                        oem.scale === "large"
-                          ? "Large"
-                          : oem.scale === "small"
-                            ? "Small"
-                            : "Medium";
-
-                      // Parse match reasons from digest field
-                      const matchReasons: string[] = [];
-                      if (match.digest) {
-                        try {
-                          // digest is already a JSON object from Supabase
-                          const digestData = match.digest as Record<
-                            string,
-                            unknown
-                          >;
-                          if (
-                            digestData.reasons &&
-                            Array.isArray(digestData.reasons)
-                          ) {
-                            matchReasons.push(...digestData.reasons);
-                          } else if (typeof digestData === "string") {
-                            matchReasons.push(digestData);
-                          }
-                        } catch (e) {
-                          console.warn("Failed to parse digest:", e);
-                        }
-                      }
-
-                      // Default reasons if none provided
-                      if (matchReasons.length === 0) {
-                        if (oem.industry) {
-                          matchReasons.push(
-                            `Industry expertise in ${oem.industry}`
-                          );
-                        }
-                        if (
-                          oem.certifications &&
-                          oem.certifications.length > 0
-                        ) {
-                          matchReasons.push(
-                            `Certified: ${oem.certifications.map((c) => c.name).join(", ")}`
-                          );
-                        }
-                        if (oem.scale) {
-                          matchReasons.push(
-                            `${scale}-scale manufacturer with proven capacity`
-                          );
-                        }
-                      }
-
-                      return (
+                  <>
+                    {/* Show signed orders first */}
+                    {orders
+                      .filter((order) => order.status === "signed")
+                      .map((order) => (
                         <Card
-                          key={match.id}
-                          className="p-6 hover:shadow-md transition-all"
+                          key={order.id}
+                          className="p-6 hover:shadow-md transition-all border-primary/20"
                         >
-                          <div className="flex items-start justify-between mb-4">
+                          <div className="flex items-start justify-between">
                             <div className="flex-1">
                               <div className="flex items-center gap-3 mb-2">
                                 <h3 className="text-lg font-semibold">
-                                  {oem.name}
+                                  {order.order_line_items[0]?.description ??
+                                    "Order"}
                                 </h3>
-                                <Badge
-                                  variant={getMatchStatusVariant(match.status)}
-                                  className={
-                                    match.status === "declined" ||
-                                    match.status === "Declined"
-                                      ? "text-destructive"
-                                      : ""
-                                  }
-                                >
-                                  {match.status.replace(/_/g, " ")}
+                                <Badge variant="verified">
+                                  <AlertCircle className="h-3 w-3 mr-1" />
+                                  Signed - Awaiting Payment
                                 </Badge>
-                                <Badge variant={getScaleBadgeVariant(scale)}>
-                                  {scale}
-                                </Badge>
+                                <EscrowStatusBadge
+                                  status="pending"
+                                  amount={order.total_value}
+                                  currency={order.currency}
+                                />
                               </div>
-
-                              <div className="flex items-center gap-4 text-sm text-muted-foreground mb-3">
-                                {oem.location && (
-                                  <span className="flex items-center gap-1">
-                                    <MapPin className="h-3 w-3" />
-                                    {oem.location}
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-
-                            {/* Match Score - Top Right */}
-                            <div className="flex flex-col items-end gap-1 ml-4">
-                              <div className="flex items-center gap-2 text-2xl font-bold text-primary">
-                                <Target className="h-6 w-6" />
-                                {match.score ?? 100}%
-                              </div>
-                              <span className="text-xs text-muted-foreground">
-                                Match Score
-                              </span>
-                            </div>
-                          </div>
-
-                          {/* Why this match section */}
-                          {matchReasons.length > 0 && (
-                            <div className="mb-4 p-3 bg-muted/50 rounded-lg">
-                              <h4 className="text-sm font-semibold mb-2 flex items-center gap-2">
-                                <CheckCircle2 className="h-4 w-4 text-success" />
-                                Why this match
-                              </h4>
-                              <ul className="space-y-1.5">
-                                {matchReasons.slice(0, 3).map((reason, idx) => (
-                                  <li
-                                    key={idx}
-                                    className="text-sm text-muted-foreground flex items-start gap-2"
-                                  >
-                                    <CheckCircle2 className="h-3.5 w-3.5 text-success mt-0.5 shrink-0" />
-                                    <span>{reason}</span>
-                                  </li>
-                                ))}
-                              </ul>
-                            </div>
-                          )}
-
-                          {/* Last Activity */}
-                          {match.updatedAt &&
-                            match.updatedAt !== match.createdAt && (
-                              <div className="mb-4 p-3 bg-muted/30 rounded-lg">
-                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                  <Clock className="h-4 w-4" />
+                              <div className="text-sm text-muted-foreground space-y-1">
+                                <div className="flex items-center gap-2">
+                                  <Building2 className="h-4 w-4" />
                                   <span>
-                                    Last activity:{" "}
-                                    {new Date(
-                                      match.updatedAt
-                                    ).toLocaleDateString()}
+                                    {order.oem_organization.display_name}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <Package className="h-4 w-4" />
+                                  <span>
+                                    {order.quantity_total} {order.unit}
+                                  </span>
+                                  <span>•</span>
+                                  <span className="font-semibold text-primary">
+                                    {order.total_value} {order.currency}
                                   </span>
                                 </div>
                               </div>
-                            )}
-
-                          {/* Action Buttons - Dynamic based on status */}
-                          <div className="flex gap-2">
-                            {/* Bookmark button - always shown */}
-                            <Button
-                              size="sm"
-                              variant={
-                                savedOemIds.has(oem.organizationId)
-                                  ? "default"
-                                  : "outline"
-                              }
-                              onClick={() => toggleSaveOem(oem.organizationId)}
-                              disabled={
-                                saveOemMutation.isPending ||
-                                unsaveOemMutation.isPending
-                              }
-                            >
-                              {savedOemIds.has(oem.organizationId) ? (
-                                <BookmarkCheck className="h-4 w-4" />
-                              ) : (
-                                <Bookmark className="h-4 w-4" />
-                              )}
-                            </Button>
-
-                            {/* View Order button - shown if order exists for this OEM */}
-                            {(() => {
-                              const matchOrder = orders.find(
-                                (order) =>
-                                  order.oem_org_id === oem.organizationId
-                              );
-                              return matchOrder ? (
-                                <Button size="sm" variant="default" asChild>
-                                  <Link
-                                    href={ROUTES.orderDetail(matchOrder.id)}
-                                  >
-                                    <Package className="h-4 w-4 mr-1" />
+                              <div className="flex gap-2 mt-4">
+                                <Button
+                                  size="sm"
+                                  className="cursor-pointer"
+                                  onClick={() =>
+                                    handleOpenPayment(order, "deposit")
+                                  }
+                                >
+                                  <CreditCard className="h-4 w-4 mr-1" />
+                                  Pay Deposit
+                                </Button>
+                                <Button size="sm" variant="outline" asChild>
+                                  <Link href={ROUTES.orderDetail(order.id)}>
+                                    <Eye className="h-4 w-4 mr-1" />
                                     View Order
                                   </Link>
                                 </Button>
-                              ) : null;
-                            })()}
-
-                            {(match.status === "new_match" ||
-                              match.status === "New Match") && (
-                              <>
-                                <Button size="sm" asChild>
+                                <Button size="sm" variant="outline" asChild>
                                   <Link
-                                    href={ROUTES.oemProfile(
-                                      oem.slug ?? oem.organizationId
+                                    href={ROUTES.messageThread(
+                                      order.request_id
                                     )}
                                   >
-                                    <Building2 className="h-4 w-4 mr-1" />
-                                    View Profile
-                                  </Link>
-                                </Button>
-                                <Button size="sm" variant="outline" asChild>
-                                  <Link href={ROUTES.messageThread(match.id)}>
                                     <MessageSquare className="h-4 w-4 mr-1" />
-                                    Contact OEM
+                                    Message OEM
                                   </Link>
                                 </Button>
-                              </>
-                            )}
-
-                            {match.status === "contacted" && (
-                              <>
-                                <Button size="sm" asChild>
-                                  <Link href={ROUTES.messageThread(match.id)}>
-                                    <MessageSquare className="h-4 w-4 mr-1" />
-                                    Continue Chat
-                                  </Link>
-                                </Button>
-                                {!orders.find(
-                                  (order) =>
-                                    order.oem_org_id === oem.organizationId
-                                ) && (
-                                  <Button size="sm" variant="outline" asChild>
-                                    <Link
-                                      href={ROUTES.requestQuote(
-                                        oem.organizationId
-                                      )}
-                                    >
-                                      <FileText className="h-4 w-4 mr-1" />
-                                      Request Quote
-                                    </Link>
-                                  </Button>
-                                )}
-                              </>
-                            )}
-
-                            {(match.status === "in_discussion" ||
-                              match.status === "In Discussion") && (
-                              <>
-                                {!orders.find(
-                                  (order) =>
-                                    order.oem_org_id === oem.organizationId
-                                ) && (
-                                  <Button size="sm" asChild>
-                                    <Link
-                                      href={ROUTES.requestQuote(
-                                        oem.organizationId
-                                      )}
-                                    >
-                                      <Zap className="h-4 w-4 mr-1" />
-                                      Request Quote
-                                    </Link>
-                                  </Button>
-                                )}
-                                <Button size="sm" variant="outline" asChild>
-                                  <Link href={ROUTES.messageThread(match.id)}>
-                                    <MessageSquare className="h-4 w-4 mr-1" />
-                                    View Messages
-                                  </Link>
-                                </Button>
-                              </>
-                            )}
-
-                            {/* Default fallback for other statuses */}
-                            {![
-                              "new_match",
-                              "New Match",
-                              "contacted",
-                              "in_discussion",
-                              "In Discussion",
-                            ].includes(match.status) && (
-                              <>
-                                <Button size="sm" asChild>
-                                  <Link
-                                    href={ROUTES.oemProfile(
-                                      oem.slug ?? oem.organizationId
-                                    )}
-                                  >
-                                    View Profile
-                                  </Link>
-                                </Button>
-                                {!orders.find(
-                                  (order) =>
-                                    order.oem_org_id === oem.organizationId
-                                ) && (
-                                  <Button size="sm" variant="outline" asChild>
-                                    <Link
-                                      href={ROUTES.requestQuote(
-                                        oem.organizationId
-                                      )}
-                                    >
-                                      <Zap className="h-4 w-4 mr-1" />
-                                      Request Quote
-                                    </Link>
-                                  </Button>
-                                )}
-                              </>
-                            )}
+                              </div>
+                            </div>
                           </div>
                         </Card>
-                      );
-                    })
+                      ))}
+
+                    {/* Then show quote_received requests */}
+                    {requests
+                      .filter((r) => r.status === "quote_received")
+                      .map((request) => (
+                        <Card
+                          key={request.id}
+                          className="p-6 hover:shadow-md transition-all border-primary/20"
+                        >
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-3 mb-2">
+                                <h3 className="text-lg font-semibold">
+                                  {request.productBrief ??
+                                    request.title ??
+                                    "Request"}
+                                </h3>
+                                <Badge variant="verified">
+                                  <AlertCircle className="h-3 w-3 mr-1" />
+                                  Quote Received
+                                </Badge>
+                              </div>
+                              <div className="text-sm text-muted-foreground space-y-1">
+                                {request.oem && (
+                                  <div className="flex items-center gap-2">
+                                    <Building2 className="h-4 w-4" />
+                                    <span>{request.oem.name}</span>
+                                    {request.oem.location && (
+                                      <>
+                                        <span>•</span>
+                                        <MapPin className="h-3 w-3" />
+                                        <span>{request.oem.location}</span>
+                                      </>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                              <div className="flex gap-2 mt-4">
+                                <Button size="sm" variant="outline" asChild>
+                                  <Link href={ROUTES.messageThread(request.id)}>
+                                    <MessageSquare className="h-4 w-4 mr-1" />
+                                    Message OEM
+                                  </Link>
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                        </Card>
+                      ))}
+                  </>
                 )}
               </TabsContent>
 
-              <TabsContent value="saved">
-                {isLoadingSavedOems ? (
-                  <Card className="p-12 text-center text-muted-foreground">
-                    Loading saved OEMs...
+              {/* Ordered Tab - In production or shipped */}
+              <TabsContent value="ordered" className="space-y-4">
+                <div className="mb-6">
+                  <p className="text-muted-foreground mb-4">
+                    Active orders currently in production or being shipped.
+                  </p>
+                </div>
+
+                {isLoadingOrders ? (
+                  <Card className="p-6 text-center text-muted-foreground">
+                    Loading orders...
                   </Card>
-                ) : savedOems.length === 0 ? (
+                ) : orders.filter(
+                    (order) =>
+                      order.status === "preparation" ||
+                      order.status === "manufacturing" ||
+                      order.status === "delivering"
+                  ).length === 0 ? (
                   <Card className="p-12 text-center text-muted-foreground">
-                    <Heart className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                    <p className="text-lg font-medium mb-2">
-                      No saved OEMs yet
-                    </p>
+                    <Package className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
+                    <p className="font-medium mb-2">No active orders</p>
                     <p className="text-sm">
-                      Bookmark OEMs from your matches to see them here
+                      Your current orders will appear here
                     </p>
                   </Card>
                 ) : (
-                  <div className="space-y-4">
-                    {savedOems.map((saved) => (
-                      <Card key={saved.oem_org_id} className="p-6">
+                  orders
+                    .filter(
+                      (order) =>
+                        order.status === "preparation" ||
+                        order.status === "manufacturing" ||
+                        order.status === "delivering"
+                    )
+                    .map((order) => (
+                      <Card
+                        key={order.id}
+                        className="p-6 hover:shadow-md transition-all"
+                      >
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
                             <div className="flex items-center gap-3 mb-2">
                               <h3 className="text-lg font-semibold">
-                                {saved.organizations.display_name}
+                                {order.order_line_items[0]?.description ??
+                                  "Order"}
                               </h3>
-                              <Badge variant="outline">
-                                <Heart className="h-3 w-3 mr-1 fill-current" />
-                                Saved
+                              <Badge
+                                variant={
+                                  order.status === "preparation" ||
+                                  order.status === "manufacturing"
+                                    ? "default"
+                                    : "secondary"
+                                }
+                              >
+                                {order.status === "preparation" ||
+                                order.status === "manufacturing" ? (
+                                  <>
+                                    <Package className="h-3 w-3 mr-1" />
+                                    {order.status === "preparation"
+                                      ? "Preparing"
+                                      : "Manufacturing"}
+                                  </>
+                                ) : (
+                                  <>
+                                    <Truck className="h-3 w-3 mr-1" />
+                                    Delivering
+                                  </>
+                                )}
                               </Badge>
+                              <EscrowStatusBadge
+                                status="held"
+                                amount={order.total_value}
+                                currency={order.currency}
+                              />
                             </div>
-                            <div className="text-sm text-muted-foreground mb-4">
-                              <span className="flex items-center gap-1">
-                                <Clock className="h-3 w-3" />
-                                Saved on{" "}
-                                {new Date(
-                                  saved.created_at
-                                ).toLocaleDateString()}
-                              </span>
+                            <div className="text-sm text-muted-foreground space-y-1">
+                              <div className="flex items-center gap-2">
+                                <Building2 className="h-4 w-4" />
+                                <span>
+                                  {order.oem_organization.display_name}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Package className="h-4 w-4" />
+                                <span>
+                                  {order.quantity_total} {order.unit}
+                                </span>
+                                <span>•</span>
+                                <span>
+                                  {order.total_value} {order.currency}
+                                </span>
+                              </div>
+                            </div>
+                            <div className="flex gap-2 mt-4">
+                              {/* Show Pay Balance button for manufacturing status */}
+                              {order.status === "manufacturing" && (
+                                <Button
+                                  size="sm"
+                                  onClick={() =>
+                                    handleOpenPayment(order, "balance")
+                                  }
+                                >
+                                  <CreditCard className="h-4 w-4 mr-1" />
+                                  Pay Balance
+                                </Button>
+                              )}
+                              <Button size="sm" variant="outline" asChild>
+                                <Link href={ROUTES.orderDetail(order.id)}>
+                                  <Eye className="h-4 w-4 mr-1" />
+                                  View Order
+                                </Link>
+                              </Button>
+                              <Button size="sm" variant="outline" asChild>
+                                <Link
+                                  href={ROUTES.messageThread(order.request_id)}
+                                >
+                                  <MessageSquare className="h-4 w-4 mr-1" />
+                                  Message OEM
+                                </Link>
+                              </Button>
                             </div>
                           </div>
                         </div>
+                      </Card>
+                    ))
+                )}
+              </TabsContent>
 
-                        <div className="flex gap-2">
+              {/* Saved OEMs Tab */}
+              <TabsContent value="saved" className="space-y-4">
+                <div className="mb-6">
+                  <p className="text-muted-foreground mb-4">
+                    OEMs you&apos;ve bookmarked for later reference.
+                  </p>
+                </div>
+
+                {isLoadingSavedOems ? (
+                  <Card className="p-6 text-center text-muted-foreground">
+                    Loading saved OEMs...
+                  </Card>
+                ) : savedOems.length === 0 ? (
+                  <Card className="p-12 text-center text-muted-foreground">
+                    <Bookmark className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
+                    <p className="font-medium mb-2">No saved OEMs yet</p>
+                    <p className="text-sm mb-4">
+                      Save OEMs from search results to keep track of potential
+                      partners
+                    </p>
+                    <Button asChild>
+                      <Link href={ROUTES.oems}>
+                        <Target className="h-4 w-4 mr-2" />
+                        Browse OEMs
+                      </Link>
+                    </Button>
+                  </Card>
+                ) : (
+                  <div className="grid gap-4 md:grid-cols-2">
+                    {savedOems.map((saved) => (
+                      <Card
+                        key={saved.oem_org_id}
+                        className="p-6 hover:shadow-md transition-all cursor-pointer"
+                        onClick={() => {
+                          window.location.href = ROUTES.oemProfile(
+                            saved.organizations.slug ?? saved.oem_org_id
+                          );
+                        }}
+                      >
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex-1">
+                            <h3 className="text-lg font-semibold mb-1">
+                              {saved.organizations.display_name}
+                            </h3>
+                            <p className="text-xs text-muted-foreground">
+                              Saved on{" "}
+                              {new Date(saved.created_at).toLocaleDateString()}
+                            </p>
+                          </div>
+                          <BookmarkCheck className="h-5 w-5 text-primary" />
+                        </div>
+                        <div className="flex gap-2 mt-4">
+                          <Button
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              window.location.href = ROUTES.oemProfile(
+                                saved.organizations.slug ?? saved.oem_org_id
+                              );
+                            }}
+                          >
+                            View Profile
+                          </Button>
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => toggleSaveOem(saved.oem_org_id)}
-                            disabled={unsaveOemMutation.isPending}
-                            className="text-destructive hover:text-destructive"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              window.location.href = ROUTES.requestQuote(
+                                saved.oem_org_id
+                              );
+                            }}
                           >
-                            <Trash2 className="h-4 w-4 mr-1" />
-                            Remove
-                          </Button>
-                          <Button size="sm" asChild>
-                            <Link
-                              href={ROUTES.oemProfile(
-                                saved.organizations.slug ?? saved.oem_org_id
-                              )}
-                            >
-                              <Building2 className="h-4 w-4 mr-1" />
-                              View Profile
-                            </Link>
-                          </Button>
-                          <Button size="sm" variant="outline" asChild>
-                            <Link href={ROUTES.requestQuote(saved.oem_org_id)}>
-                              <Zap className="h-4 w-4 mr-1" />
-                              Request Quote
-                            </Link>
+                            Request Quote
                           </Button>
                         </div>
                       </Card>
@@ -1039,10 +1083,131 @@ function DashboardContent() {
                   </div>
                 )}
               </TabsContent>
+
+              {/* History Tab - Completed or cancelled orders */}
+              <TabsContent value="history" className="space-y-4">
+                <div className="mb-6">
+                  <p className="text-muted-foreground mb-4">
+                    Your completed and cancelled orders.
+                  </p>
+                </div>
+
+                {isLoadingOrders ? (
+                  <Card className="p-6 text-center text-muted-foreground">
+                    Loading history...
+                  </Card>
+                ) : orders.filter(
+                    (order) =>
+                      order.status === "delivered" ||
+                      order.status === "cancelled" ||
+                      order.status === "completed"
+                  ).length === 0 ? (
+                  <Card className="p-12 text-center text-muted-foreground">
+                    <Clock className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
+                    <p className="font-medium mb-2">No order history</p>
+                    <p className="text-sm">
+                      Completed and cancelled orders will appear here
+                    </p>
+                  </Card>
+                ) : (
+                  orders
+                    .filter(
+                      (order) =>
+                        order.status === "delivered" ||
+                        order.status === "cancelled" ||
+                        order.status === "completed"
+                    )
+                    .map((order) => (
+                      <Card
+                        key={order.id}
+                        className="p-6 hover:shadow-md transition-all opacity-80"
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-3 mb-2">
+                              <h3 className="text-lg font-semibold">
+                                {order.order_line_items[0]?.description ??
+                                  "Order"}
+                              </h3>
+                              <Badge
+                                variant={
+                                  order.status === "delivered" ||
+                                  order.status === "completed"
+                                    ? "verified"
+                                    : "outline"
+                                }
+                              >
+                                {order.status === "delivered" ||
+                                order.status === "completed" ? (
+                                  <>
+                                    <CheckCircle2 className="h-3 w-3 mr-1" />
+                                    Completed
+                                  </>
+                                ) : (
+                                  <>
+                                    <AlertCircle className="h-3 w-3 mr-1" />
+                                    Cancelled
+                                  </>
+                                )}
+                              </Badge>
+                            </div>
+                            <div className="text-sm text-muted-foreground space-y-1">
+                              <div className="flex items-center gap-2">
+                                <Building2 className="h-4 w-4" />
+                                <span>
+                                  {order.oem_organization.display_name}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Package className="h-4 w-4" />
+                                <span>
+                                  {order.quantity_total} {order.unit}
+                                </span>
+                                <span>•</span>
+                                <span>
+                                  {order.total_value} {order.currency}
+                                </span>
+                              </div>
+                            </div>
+                            <div className="flex gap-2 mt-4">
+                              <Button size="sm" variant="outline" asChild>
+                                <Link href={ROUTES.orderDetail(order.id)}>
+                                  <Eye className="h-4 w-4 mr-1" />
+                                  View Details
+                                </Link>
+                              </Button>
+                              {(order.status === "delivered" ||
+                                order.status === "completed") && (
+                                <Button size="sm" variant="outline">
+                                  <RefreshCw className="h-4 w-4 mr-1" />
+                                  Reorder
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </Card>
+                    ))
+                )}
+              </TabsContent>
             </Tabs>
           </div>
         </div>
       </div>
+
+      {/* Payment Modal */}
+      {selectedOrder && (
+        <PaymentModal
+          open={showPaymentModal}
+          onOpenChange={setShowPaymentModal}
+          orderId={selectedOrder.id}
+          orderNumber={selectedOrder.id}
+          total={selectedOrder.total_value}
+          currency={selectedOrder.currency}
+          paymentType={paymentType}
+          onPaymentComplete={handlePaymentComplete}
+        />
+      )}
     </ProtectedClient>
   );
 }

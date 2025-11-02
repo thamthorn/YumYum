@@ -78,6 +78,7 @@ export const ROUTES = {
   pricing: "/pricing",
   orders: "/orders",
   orderDetail: (id: string) => `/orders/${id}`,
+  savedOems: "/dashboard/buyer?tab=saved",
 } as const;
 
 export const NAV: NavConfig = {
@@ -88,6 +89,7 @@ export const NAV: NavConfig = {
   loggedIn: [
     { label: "Dashboard", href: ROUTES.buyerDashboard },
     { label: "Messages", href: ROUTES.messages },
+    { label: "Saved OEMs", href: ROUTES.savedOems },
     { label: "List of OEMs", href: ROUTES.oems },
   ],
 };

@@ -237,14 +237,43 @@ export default function AdminCreateOrderPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="signed">Signed</SelectItem>
-                    <SelectItem value="preparation">Preparation</SelectItem>
-                    <SelectItem value="manufacturing">Manufacturing</SelectItem>
-                    <SelectItem value="delivering">Delivering</SelectItem>
-                    <SelectItem value="completed">Completed</SelectItem>
-                    <SelectItem value="cancelled">Cancelled</SelectItem>
+                    <SelectItem value="signed">Signed (To Pay)</SelectItem>
+                    <SelectItem value="processing">
+                      Processing (Ordered)
+                    </SelectItem>
+                    <SelectItem value="preparation">
+                      Preparation (Ordered)
+                    </SelectItem>
+                    <SelectItem value="in_production">
+                      In Production (Ordered)
+                    </SelectItem>
+                    <SelectItem value="manufacturing">
+                      Manufacturing (Ordered)
+                    </SelectItem>
+                    <SelectItem value="delivering">
+                      Delivering (Ordered)
+                    </SelectItem>
+                    <SelectItem value="in_transit">
+                      In Transit (Ordered)
+                    </SelectItem>
+                    <SelectItem value="delivered">
+                      Delivered (History)
+                    </SelectItem>
+                    <SelectItem value="completed">
+                      Completed (History)
+                    </SelectItem>
+                    <SelectItem value="cancelled">
+                      Cancelled (History)
+                    </SelectItem>
                   </SelectContent>
                 </Select>
+                <p className="text-xs text-muted-foreground mt-2">
+                  • <strong>To Pay tab:</strong> signed
+                  <br />• <strong>Ordered tab:</strong> processing, preparation,
+                  in_production, manufacturing, delivering, in_transit
+                  <br />• <strong>History tab:</strong> delivered, completed,
+                  cancelled
+                </p>
               </div>
             </Card>
 

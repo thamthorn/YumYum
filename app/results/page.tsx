@@ -49,7 +49,9 @@ type OEMResponse = {
   prototypeSupport: boolean | null;
   rating: number | null;
   totalReviews: number | null;
+  leadTimeDays: number | null;
   certifications: Array<{ name: string; issuedBy: string }>;
+  services?: Array<{ name: string }>;
 };
 
 type OEMCard = {
@@ -64,9 +66,13 @@ type OEMCard = {
   crossBorder: boolean;
   rating: number | null;
   totalReviews: number | null;
+  leadTimeDays: number | null;
   certifications: string[];
+  services?: string[];
+  tags?: string[];
   aiRank?: number;
   aiScore?: number;
+  matchScore?: number;
   matchReasons?: string[];
 };
 
@@ -91,12 +97,61 @@ type AiResult = {
 export default function Results() {
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState("best-match");
-  const [moqRange, setMoqRange] = useState<[number, number]>([50, 10000]);
+  const [moqRange, setMoqRange] = useState<[number, number]>([1, 10000]);
   const [selectedScale, setSelectedScale] = useState<string[]>([]);
   const [selectedCerts, setSelectedCerts] = useState<string[]>([]);
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [availableTags, setAvailableTags] = useState<string[]>([]);
+  const [selectedLocation, setSelectedLocation] = useState<string>("any");
+  const [leadTimeRange, setLeadTimeRange] = useState<[number, number]>([1, 90]);
   const [aiResults, setAiResults] = useState<AiResult[]>([]);
   const [searchMode, setSearchMode] = useState<string>("");
+  const [userPreferences, setUserPreferences] = useState<{
+    productType?: string;
+    timeline?: string;
+    quickMatch?: boolean;
+    minPrice?: number;
+    maxPrice?: number;
+  } | null>(null);
   const { session, supabase } = useSupabase();
+
+  // Fetch available service tags from database
+  useEffect(() => {
+    const fetchServices = async () => {
+      if (!supabase) return;
+
+      try {
+        const { data, error } = await supabase
+          .from("services")
+          .select("name")
+          .order("name");
+
+        if (error) throw error;
+
+        if (data) {
+          const uniqueTags = Array.from(
+            new Set(data.map((s: { name: string }) => s.name))
+          );
+          setAvailableTags(uniqueTags);
+        }
+      } catch (error) {
+        console.error("Error fetching services:", error);
+        // Fallback to default tags if database fetch fails
+        setAvailableTags([
+          "Low MOQ Friendly",
+          "Eco Packaging",
+          "Fast Turnaround",
+          "Prototype Support",
+          "International Shipping",
+          "Custom Design",
+          "Bulk Discount",
+          "Quality Certified",
+        ]);
+      }
+    };
+
+    fetchServices();
+  }, [supabase]);
 
   // Check for AI search results from sessionStorage
   useEffect(() => {
@@ -116,6 +171,35 @@ export default function Results() {
         } catch (e) {
           console.error("Failed to parse AI results:", e);
         }
+      }
+    }
+
+    // Load user preferences from onboarding
+    const preferences = sessionStorage.getItem("userPreferences");
+    if (preferences) {
+      try {
+        const parsed = JSON.parse(preferences);
+        if (parsed.moqRange) setMoqRange(parsed.moqRange as [number, number]);
+
+        // Set lead time range based on timeline preference
+        if (parsed.timeline) {
+          let maxDays = 90; // default flexible
+          if (parsed.timeline === "urgent") maxDays = 14;
+          else if (parsed.timeline === "standard") maxDays = 60;
+          setLeadTimeRange([1, maxDays]);
+        }
+
+        // Store for API query
+        setUserPreferences({
+          productType: parsed.productType,
+          timeline: parsed.timeline,
+          quickMatch: parsed.quickMatch,
+          minPrice: parsed.priceRange?.[0],
+          maxPrice: parsed.priceRange?.[1],
+        });
+        // Don't clear preferences so user can go back and see them
+      } catch (e) {
+        console.error("Failed to parse user preferences:", e);
       }
     }
   }, []);
@@ -161,13 +245,40 @@ export default function Results() {
     isLoading,
     error,
   } = useQuery<OEMResponse[]>({
-    queryKey: ["oems-browse", buyerData?.industry],
+    queryKey: [
+      "oems-browse",
+      buyerData?.industry,
+      buyerData?.industry,
+      userPreferences?.productType,
+      userPreferences?.timeline,
+      userPreferences?.minPrice,
+      userPreferences?.maxPrice,
+    ],
     queryFn: async () => {
       const params = new URLSearchParams({ limit: "100" });
       const industry = buyerData?.industry;
       if (industry) {
         params.set("industry", industry);
       }
+
+      // Add timeline filter
+      if (userPreferences?.timeline) {
+        params.set("timeline", userPreferences.timeline);
+      }
+
+      // Add product type filter if available
+      if (userPreferences?.productType) {
+        params.set("productType", userPreferences.productType);
+      }
+
+      // Add price range filter if available
+      if (userPreferences?.minPrice !== undefined) {
+        params.set("minPrice", userPreferences.minPrice.toString());
+      }
+      if (userPreferences?.maxPrice !== undefined) {
+        params.set("maxPrice", userPreferences.maxPrice.toString());
+      }
+
       const url = `/api/oems?${params}`;
       const response = await fetch(url);
       if (!response.ok) {
@@ -202,6 +313,7 @@ export default function Results() {
           crossBorder: result.crossBorder ?? false,
           rating: result.rating ?? null,
           totalReviews: result.totalReviews ?? null,
+          leadTimeDays: null, // AI results don't have lead time yet
           certifications: result.certifications?.map((c) => c.name) || [],
           aiRank: result.aiRank,
           aiScore: result.aiScore,
@@ -230,7 +342,9 @@ export default function Results() {
         crossBorder: Boolean(oem.crossBorder),
         rating: oem.rating,
         totalReviews: oem.totalReviews,
+        leadTimeDays: oem.leadTimeDays,
         certifications: oem.certifications.map((c) => c.name),
+        services: oem.services?.map((s) => s.name) || [],
       };
     });
   }, [oems, aiResults]);
@@ -243,8 +357,113 @@ export default function Results() {
     return Array.from(set);
   }, [cards]);
 
+  // Calculate matching score for each OEM based on user preferences
+  const calculateMatchingScore = (oem: OEMCard): number => {
+    if (oem.aiScore) return oem.aiScore; // Use AI score if available
+
+    let score = 0;
+    let totalCriteria = 0;
+
+    // MOQ Match (40% weight)
+    totalCriteria += 40;
+    if (oem.moqMin !== null && oem.moqMax !== null) {
+      const userMoqMin = moqRange[0];
+      const userMoqMax = moqRange[1];
+
+      // Perfect match if ranges overlap
+      if (oem.moqMin <= userMoqMax && oem.moqMax >= userMoqMin) {
+        score += 40;
+      } else if (oem.moqMin <= userMoqMax * 1.5) {
+        // Partial match if close
+        score += 20;
+      }
+    }
+
+    // Lead Time Match (40% weight)
+    totalCriteria += 40;
+    if (oem.leadTimeDays !== null && leadTimeRange[1] > 0) {
+      if (oem.leadTimeDays <= leadTimeRange[1]) {
+        score += 40;
+      } else if (oem.leadTimeDays <= leadTimeRange[1] * 1.2) {
+        // Partial match if within 20% over
+        score += 20;
+      }
+    }
+
+    // Location Match (20% weight)
+    totalCriteria += 20;
+    if (selectedLocation !== "any" && oem.location) {
+      if (oem.location.toLowerCase() === selectedLocation.toLowerCase()) {
+        score += 20;
+      }
+    } else if (selectedLocation === "any") {
+      score += 10; // Bonus for flexibility
+    }
+
+    return Math.round((score / totalCriteria) * 100);
+  };
+
+  // Generate highlight tags based on OEM attributes
+  const generateOemTags = (oem: OEMCard): string[] => {
+    const tags: string[] = [];
+
+    // Low MOQ friendly
+    if (oem.moqMin !== null && oem.moqMin <= 100) {
+      tags.push("Low MOQ Friendly");
+    }
+
+    // Fast delivery
+    if (oem.leadTimeDays !== null && oem.leadTimeDays <= 14) {
+      tags.push("Fast Delivery");
+    }
+
+    // Eco certifications
+    const ecoCerts = ["ISO 14001", "FSC", "Eco-Friendly"];
+    if (
+      oem.certifications.some((cert) =>
+        ecoCerts.some((eco) => cert.includes(eco))
+      )
+    ) {
+      tags.push("Eco Packaging");
+    }
+
+    // Highly rated
+    if (oem.rating !== null && oem.rating >= 4.5) {
+      tags.push("Top Rated");
+    }
+
+    // Prototype support
+    if (oem.certifications.includes("Prototype")) {
+      tags.push("Prototype Ready");
+    }
+
+    // Large scale
+    if (oem.scale === "Large") {
+      tags.push("High Capacity");
+    }
+
+    return tags;
+  };
+
+  const cardsWithScores = useMemo(() => {
+    return cards.map((card) => {
+      // Use services from database if available, otherwise fallback to generated tags
+      const displayTags =
+        card.services && card.services.length > 0
+          ? card.services
+          : generateOemTags(card);
+
+      return {
+        ...card,
+        matchScore: calculateMatchingScore(card),
+        tags: displayTags,
+      };
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cards, moqRange, leadTimeRange, selectedLocation]);
+
   const filtered = useMemo(() => {
-    let list = cards.filter((o) => {
+    let list = cardsWithScores.filter((o) => {
       const nameHit = o.name.toLowerCase().includes(search.toLowerCase());
 
       // MOQ filter: Check if OEM's MOQ range overlaps with the selected range
@@ -257,14 +476,47 @@ export default function Results() {
 
       const scaleHit =
         selectedScale.length === 0 || selectedScale.includes(o.scale);
+
+      // Location filter
+      const locationHit =
+        selectedLocation === "any" ||
+        !o.location ||
+        o.location.toLowerCase() === selectedLocation.toLowerCase();
+
+      // Lead Time filter
+      const leadTimeHit =
+        o.leadTimeDays === null ||
+        (o.leadTimeDays >= leadTimeRange[0] &&
+          o.leadTimeDays <= leadTimeRange[1]);
+
+      // Certifications filter: If filters selected, OEM must have ALL selected certs
       const certHit =
         selectedCerts.length === 0 ||
         selectedCerts.every((c) => o.certifications.includes(c));
 
-      return nameHit && moqHit && scaleHit && certHit;
+      // Tags filter: If tags selected, OEM must have AT LEAST ONE selected tag
+      const tagHit =
+        selectedTags.length === 0 ||
+        selectedTags.some((tag) => o.tags?.includes(tag));
+
+      return (
+        nameHit &&
+        moqHit &&
+        scaleHit &&
+        locationHit &&
+        leadTimeHit &&
+        certHit &&
+        tagHit
+      );
     });
 
     switch (sortBy) {
+      case "best-match":
+        // Sort by matching score (highest first)
+        list = [...list].sort(
+          (a, b) => (b.matchScore ?? 0) - (a.matchScore ?? 0)
+        );
+        break;
       case "ai-rank":
         // Sort by AI ranking (already sorted, but ensure)
         list = [...list].sort((a, b) => (a.aiRank ?? 999) - (b.aiRank ?? 999));
@@ -287,7 +539,17 @@ export default function Results() {
         break;
     }
     return list;
-  }, [cards, search, moqRange, selectedScale, selectedCerts, sortBy]);
+  }, [
+    cardsWithScores,
+    search,
+    moqRange,
+    selectedScale,
+    selectedLocation,
+    leadTimeRange,
+    selectedCerts,
+    selectedTags,
+    sortBy,
+  ]);
 
   const handleViewProfile = (card: OEMCard) => {
     const target = card.slug ?? card.oemOrgId;
@@ -352,21 +614,42 @@ export default function Results() {
                 </div>
 
                 <div className="space-y-6">
+                  {/* MOQ Range - Removed from filter UI, now only from onboarding */}
+
                   <div className="space-y-2">
-                    <Label>MOQ Range</Label>
+                    <Label htmlFor="location">Location</Label>
+                    <Select
+                      value={selectedLocation}
+                      onValueChange={(value) => setSelectedLocation(value)}
+                    >
+                      <SelectTrigger id="location">
+                        <SelectValue placeholder="Any Location" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="any">Any Location</SelectItem>
+                        <SelectItem value="thailand">Thailand</SelectItem>
+                        <SelectItem value="vietnam">Vietnam</SelectItem>
+                        <SelectItem value="china">China</SelectItem>
+                        <SelectItem value="sea">Southeast Asia</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Lead Time (Days)</Label>
                     <Slider
-                      value={moqRange}
+                      value={leadTimeRange}
                       onValueChange={(v) =>
-                        setMoqRange([v[0], v[1]] as [number, number])
+                        setLeadTimeRange([v[0], v[1]] as [number, number])
                       }
-                      min={50}
-                      max={10000}
-                      step={50}
+                      min={1}
+                      max={90}
+                      step={1}
                       className="mb-2"
                     />
                     <div className="flex justify-between text-sm text-muted-foreground">
-                      <span>{moqRange[0]}</span>
-                      <span>{moqRange[1]}</span>
+                      <span>{leadTimeRange[0]} days</span>
+                      <span>{leadTimeRange[1]} days</span>
                     </div>
                   </div>
 
@@ -422,6 +705,31 @@ export default function Results() {
                       ))}
                     </div>
                   </div>
+
+                  <div className="space-y-2">
+                    <Label>OEM Highlights</Label>
+                    <div className="space-y-2">
+                      {availableTags.map((tag) => (
+                        <div key={tag} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={tag}
+                            checked={selectedTags.includes(tag)}
+                            onCheckedChange={(checked) => {
+                              if (checked)
+                                setSelectedTags([...selectedTags, tag]);
+                              else
+                                setSelectedTags(
+                                  selectedTags.filter((t) => t !== tag)
+                                );
+                            }}
+                          />
+                          <Label htmlFor={tag} className="cursor-pointer">
+                            {tag}
+                          </Label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               </Card>
             </aside>
@@ -442,7 +750,10 @@ export default function Results() {
                       setSortBy("best-match");
                       setSelectedCerts([]);
                       setSelectedScale([]);
-                      setMoqRange([50, 10000]);
+                      setSelectedTags([]);
+                      setSelectedLocation("any");
+                      // Don't reset moqRange - it comes from onboarding
+                      setLeadTimeRange([1, 90]);
                     }}
                   >
                     Reset
@@ -516,7 +827,7 @@ export default function Results() {
                               <CheckCircle2 className="h-3 w-3 mr-1" />
                               Match
                             </Badge>
-                            {oem.aiScore && (
+                            {oem.aiScore ? (
                               <Badge
                                 variant="outline"
                                 className="text-purple-600 border-purple-300"
@@ -524,9 +835,39 @@ export default function Results() {
                                 <Sparkles className="h-3 w-3 mr-1" />
                                 {oem.aiScore}% Match
                               </Badge>
-                            )}
+                            ) : oem.matchScore && oem.matchScore >= 70 ? (
+                              <Badge
+                                variant="outline"
+                                className={
+                                  oem.matchScore >= 90
+                                    ? "text-green-700 border-green-400 bg-green-50"
+                                    : oem.matchScore >= 80
+                                      ? "text-blue-700 border-blue-400 bg-blue-50"
+                                      : "text-orange-700 border-orange-400 bg-orange-50"
+                                }
+                              >
+                                <CheckCircle2 className="h-3 w-3 mr-1" />
+                                {oem.matchScore}% Fit
+                              </Badge>
+                            ) : null}
                           </div>
                         </div>
+
+                        {/* OEM Highlight Tags */}
+                        {oem.tags && oem.tags.length > 0 && (
+                          <div className="flex gap-1.5 flex-wrap">
+                            {oem.tags.map((tag, idx) => (
+                              <Badge
+                                key={idx}
+                                variant="secondary"
+                                className="text-xs bg-gradient-to-r from-primary/10 to-primary/5 text-primary border-primary/20"
+                              >
+                                <Sparkles className="h-2.5 w-2.5 mr-1" />
+                                {tag}
+                              </Badge>
+                            ))}
+                          </div>
+                        )}
 
                         {oem.matchReasons && oem.matchReasons.length > 0 && (
                           <div className="bg-purple-50 dark:bg-purple-950/20 border border-purple-200 dark:border-purple-800 rounded-lg p-3">

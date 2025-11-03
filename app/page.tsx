@@ -94,15 +94,13 @@ export default function Home() {
                       <Globe className="h-5 w-5 text-blue-600" />
                     </div>
                     <div>
-                      <div className="font-semibold text-sm">
-                        SEA Bridge Network
-                      </div>
+                      <div className="font-semibold text-sm">SEA Bridge</div>
                       <div className="text-xs text-muted-foreground">
                         Strategic Partner
                       </div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3 p-3 bg-card rounded-lg border border-border/50">
+                  {/* <div className="flex items-center gap-3 p-3 bg-card rounded-lg border border-border/50">
                     <div className="h-10 w-10 rounded-full bg-orange-100 flex items-center justify-center">
                       <Factory className="h-5 w-5 text-orange-600" />
                     </div>
@@ -114,7 +112,7 @@ export default function Home() {
                         Founding OEM Partner
                       </div>
                     </div>
-                  </div>
+                  </div> */}
                 </div>
               </div>
             </div>
@@ -347,9 +345,7 @@ export default function Home() {
                   <Globe className="h-10 w-10 text-white" />
                 </div>
                 <div className="text-center">
-                  <div className="font-semibold text-lg">
-                    SEA Bridge Network
-                  </div>
+                  <div className="font-semibold text-lg">SEA Bridge</div>
                   <div className="text-sm text-muted-foreground">
                     ASEAN Startup Accelerator
                   </div>

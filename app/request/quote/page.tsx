@@ -18,7 +18,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
@@ -29,7 +28,6 @@ import {
   FileText,
   Package,
   Truck,
-  CreditCard,
   CheckCircle2,
 } from "lucide-react";
 import { useSupabase } from "@/lib/supabase/session-context";
@@ -80,7 +78,7 @@ function RequestForm() {
   const [isLoadingOem, setIsLoadingOem] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const totalSteps = 5;
+  const totalSteps = 4;
   const progress = (step / totalSteps) * 100;
 
   useEffect(() => {
@@ -625,69 +623,6 @@ function RequestForm() {
                         </SelectItem>
                       </SelectContent>
                     </Select>
-                  </div>
-                </div>
-              )}
-
-              {step === 5 && (
-                <div className="space-y-6">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                      <CreditCard className="h-5 w-5 text-primary" />
-                    </div>
-                    <h2 className="text-2xl font-semibold">
-                      Shipping & Payment
-                    </h2>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="shipping">Shipping Preferences</Label>
-                    <Textarea
-                      id="shipping"
-                      value={formData.shipping}
-                      onChange={(e) =>
-                        updateFormData("shipping", e.target.value)
-                      }
-                      placeholder="e.g. FOB Bangkok, include logistics support..."
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="payment">Payment Preferences</Label>
-                    <Textarea
-                      id="payment"
-                      value={formData.payment}
-                      onChange={(e) =>
-                        updateFormData("payment", e.target.value)
-                      }
-                      placeholder="e.g. 30% deposit / 70% before shipment"
-                    />
-                  </div>
-
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="escrow"
-                      checked={formData.addEscrow}
-                      onCheckedChange={(checked) =>
-                        updateFormData("addEscrow", checked as boolean)
-                      }
-                    />
-                    <Label htmlFor="escrow" className="cursor-pointer">
-                      Include escrow service
-                    </Label>
-                  </div>
-
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="audit"
-                      checked={formData.addAudit}
-                      onCheckedChange={(checked) =>
-                        updateFormData("addAudit", checked as boolean)
-                      }
-                    />
-                    <Label htmlFor="audit" className="cursor-pointer">
-                      Include third-party factory audit
-                    </Label>
                   </div>
                 </div>
               )}

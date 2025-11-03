@@ -37,7 +37,7 @@ type ScaleType = Database["public"]["Enums"]["scale_type"];
 
 const verificationLabel: Record<VerificationTier, string> = {
   trusted_partner: "Trusted Partner",
-  certified: "Certified",
+  certified: "Partner",
   verified: "Verified",
   none: "None",
 };

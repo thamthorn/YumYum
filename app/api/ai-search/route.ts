@@ -42,6 +42,7 @@ export async function POST(request: Request) {
         rating,
         total_reviews,
         response_time_hours,
+        lead_time_days,
         organizations!oem_profiles_organization_id_fkey (
           id,
           display_name,
@@ -65,6 +66,15 @@ export async function POST(request: Request) {
       )
       .limit(100); // Limit to prevent token overload
 
+    // Fetch products for all OEMs
+    const oemIds = (oemsData || [])
+      .map((oem: Record<string, unknown>) => oem["organization_id"])
+      .filter((id): id is string => typeof id === "string");
+    const { data: productsData } = await context.supabase
+      .from("products")
+      .select("oem_org_id, name, category, sku, moq")
+      .in("oem_org_id", oemIds);
+
     if (oemsError) {
       console.error("Error fetching OEMs:", oemsError);
       throw new AppError("Failed to fetch OEM data", { status: 500 });
@@ -79,6 +89,13 @@ export async function POST(request: Request) {
       const certsArr = oem["oem_certifications"] as
         | Array<Record<string, unknown>>
         | undefined;
+
+      // Get products for this OEM
+      const oemProducts =
+        (productsData || []).filter(
+          (p: Record<string, unknown>) =>
+            p["oem_org_id"] === oem["organization_id"]
+        ) || [];
 
       return {
         id: String(oem["organization_id"] ?? ""),
@@ -95,6 +112,7 @@ export async function POST(request: Request) {
         rating: (oem["rating"] as number) ?? undefined,
         totalReviews: (oem["total_reviews"] as number) ?? undefined,
         responseTime: (oem["response_time_hours"] as number) ?? undefined,
+        leadTimeDays: (oem["lead_time_days"] as number) ?? undefined,
         services:
           servicesArr
             ?.map(
@@ -111,6 +129,12 @@ export async function POST(request: Request) {
               | undefined,
             tier: (c["verification_tier"] as string) ?? undefined,
           })) || [],
+        products: oemProducts.map((p: Record<string, unknown>) => ({
+          name: p["name"] as string,
+          category: p["category"] as string,
+          sku: p["sku"] as string,
+          moq: p["moq"] as number,
+        })),
       };
     });
 
@@ -127,14 +151,15 @@ Task: Analyze the user's requirement and recommend the TOP 5 most relevant OEMs 
 
 Consider these factors in your ranking:
 1. Industry match
-2. Location/cross-border capability match
-3. MOQ (Minimum Order Quantity) match
-4. Certifications match
-5. Services offered
-6. Prototype support (if mentioned)
-7. Company scale
-8. Rating and reviews
-9. Response time
+2. Product catalog match (does the OEM make what the user needs?)
+3. Location/cross-border capability match
+4. MOQ (Minimum Order Quantity) match
+5. Certifications match
+6. Services offered
+7. Prototype support (if mentioned)
+8. Company scale
+9. Rating and reviews
+10. Response time
 
 Return ONLY a valid JSON array with exactly 5 OEMs, ranked by relevance (most relevant first). Each object should have:
 {
@@ -214,6 +239,7 @@ IMPORTANT:
         prototype_support,
         rating,
         total_reviews,
+        lead_time_days,
         organizations!oem_profiles_organization_id_fkey (
           id,
           display_name,
@@ -223,6 +249,11 @@ IMPORTANT:
         ),
         oem_certifications (
           certifications (
+            name
+          )
+        ),
+        oem_services (
+          services (
             name
           )
         )
@@ -256,11 +287,18 @@ IMPORTANT:
         prototypeSupport: oemData.prototype_support,
         rating: oemData.rating,
         totalReviews: oemData.total_reviews,
+        leadTimeDays: oemData.lead_time_days,
         certifications:
           oemData.oem_certifications?.map((c) => ({
             name: (c.certifications as unknown as Record<string, unknown>)?.[
               "name"
             ],
+          })) || [],
+        services:
+          oemData.oem_services?.map((s) => ({
+            name: (s.services as unknown as Record<string, unknown>)?.[
+              "name"
+            ] as string,
           })) || [],
         aiRank: Number(aiRec["rank"] ?? 0),
         aiScore: Number(aiRec["relevanceScore"] ?? 0),

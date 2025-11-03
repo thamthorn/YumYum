@@ -71,7 +71,7 @@ type OemCard = {
   services: string[];
   location: string | null;
   crossBorder: boolean;
-  verification: "None" | "Verified" | "Certified" | "Trusted Partner";
+  verification: "None" | "Verified" | "Partner" | "Trusted Partner";
   rating: number | null;
   totalReviews: number | null;
 };
@@ -164,7 +164,7 @@ export default function OEMList() {
 
     const tierLabel: Record<VerificationTier, OemCard["verification"]> = {
       trusted_partner: "Trusted Partner",
-      certified: "Certified",
+      certified: "Partner",
       verified: "Verified",
       none: "None",
     };

@@ -14,7 +14,7 @@ export async function POST(
   try {
     const { id: orderId } = await params;
     const body = await request.json();
-    const { paymentType, amount } = body;
+    const { paymentType, amount, shippingPreference, buyerAddress } = body;
 
     const context = await createSupabaseRouteContext();
     const { supabase, user } = context;
@@ -104,7 +104,13 @@ export async function POST(
     }
 
     // Determine new order status based on payment type
-    let newStatus = order.status;
+    let newStatus:
+      | "signed"
+      | "preparation"
+      | "manufacturing"
+      | "delivering"
+      | "completed"
+      | "cancelled" = order.status;
 
     if (paymentType === "deposit") {
       newStatus = "manufacturing";
@@ -112,13 +118,29 @@ export async function POST(
       newStatus = "delivering";
     }
 
-    // Update order status
+    // Prepare order update data
+    const orderUpdate: {
+      status: typeof newStatus;
+      updated_at: string;
+      shipping_preference?: string;
+      shipping_address?: string;
+    } = {
+      status: newStatus,
+      updated_at: new Date().toISOString(),
+    };
+
+    // If shipping info provided (for balance payment), save it
+    if (shippingPreference) {
+      orderUpdate.shipping_preference = shippingPreference;
+      if (shippingPreference === "buyer-address" && buyerAddress) {
+        orderUpdate.shipping_address = buyerAddress;
+      }
+    }
+
+    // Update order status and shipping info
     const { error: updateError } = await supabase
       .from("orders")
-      .update({
-        status: newStatus,
-        updated_at: new Date().toISOString(),
-      })
+      .update(orderUpdate)
       .eq("id", orderId);
 
     if (updateError) {

@@ -47,7 +47,7 @@ export const getVerifiedBadgeVariant = (
   verified: string
 ): "trusted" | "certified" | "verified" => {
   if (verified === "Trusted Partner") return "trusted";
-  if (verified === "Certified") return "certified";
+  if (verified === "Partner") return "certified";
   return "verified";
 };
 

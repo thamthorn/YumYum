@@ -88,7 +88,9 @@ type AiResult = {
   crossBorder?: boolean;
   rating?: number | null;
   totalReviews?: number | null;
+  leadTimeDays?: number | null;
   certifications?: Array<{ name: string }>;
+  services?: Array<{ name: string }>;
   aiRank?: number;
   aiScore?: number;
   matchReasons?: string[];
@@ -168,13 +170,15 @@ export default function Results() {
           // Clear from storage after loading
           sessionStorage.removeItem("aiSearchResults");
           sessionStorage.removeItem("searchMode");
+          // Clear user preferences for AI search to ensure filters are shown
+          sessionStorage.removeItem("userPreferences");
         } catch (e) {
           console.error("Failed to parse AI results:", e);
         }
       }
     }
 
-    // Load user preferences from onboarding
+    // Load user preferences from onboarding (only for quick match)
     const preferences = sessionStorage.getItem("userPreferences");
     if (preferences) {
       try {
@@ -313,8 +317,9 @@ export default function Results() {
           crossBorder: result.crossBorder ?? false,
           rating: result.rating ?? null,
           totalReviews: result.totalReviews ?? null,
-          leadTimeDays: null, // AI results don't have lead time yet
+          leadTimeDays: result.leadTimeDays ?? null,
           certifications: result.certifications?.map((c) => c.name) || [],
+          services: result.services?.map((s) => s.name) || [],
           aiRank: result.aiRank,
           aiScore: result.aiScore,
           matchReasons: result.matchReasons,
@@ -499,15 +504,16 @@ export default function Results() {
         selectedTags.length === 0 ||
         selectedTags.some((tag) => o.tags?.includes(tag));
 
-      return (
+      const passesFilter =
         nameHit &&
         moqHit &&
         scaleHit &&
         locationHit &&
         leadTimeHit &&
         certHit &&
-        tagHit
-      );
+        tagHit;
+
+      return passesFilter;
     });
 
     switch (sortBy) {
@@ -635,23 +641,26 @@ export default function Results() {
                     </Select>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label>Lead Time (Days)</Label>
-                    <Slider
-                      value={leadTimeRange}
-                      onValueChange={(v) =>
-                        setLeadTimeRange([v[0], v[1]] as [number, number])
-                      }
-                      min={1}
-                      max={90}
-                      step={1}
-                      className="mb-2"
-                    />
-                    <div className="flex justify-between text-sm text-muted-foreground">
-                      <span>{leadTimeRange[0]} days</span>
-                      <span>{leadTimeRange[1]} days</span>
+                  {/* Lead Time Filter - Only show for AI search or regular browse, not for quick match */}
+                  {!userPreferences?.quickMatch && (
+                    <div className="space-y-2">
+                      <Label>Lead Time (Days)</Label>
+                      <Slider
+                        min={1}
+                        max={90}
+                        step={1}
+                        value={leadTimeRange}
+                        onValueChange={(value) => {
+                          setLeadTimeRange(value as [number, number]);
+                        }}
+                        className="mb-2"
+                      />
+                      <div className="flex justify-between text-sm text-muted-foreground">
+                        <span>{leadTimeRange[0]} days</span>
+                        <span>{leadTimeRange[1]} days</span>
+                      </div>
                     </div>
-                  </div>
+                  )}
 
                   <div className="space-y-2">
                     <Label>Scale</Label>
@@ -708,25 +717,26 @@ export default function Results() {
 
                   <div className="space-y-2">
                     <Label>OEM Highlights</Label>
-                    <div className="space-y-2">
+                    <div className="flex flex-wrap gap-2">
                       {availableTags.map((tag) => (
-                        <div key={tag} className="flex items-center space-x-2">
-                          <Checkbox
-                            id={tag}
-                            checked={selectedTags.includes(tag)}
-                            onCheckedChange={(checked) => {
-                              if (checked)
-                                setSelectedTags([...selectedTags, tag]);
-                              else
-                                setSelectedTags(
-                                  selectedTags.filter((t) => t !== tag)
-                                );
-                            }}
-                          />
-                          <Label htmlFor={tag} className="cursor-pointer">
-                            {tag}
-                          </Label>
-                        </div>
+                        <Badge
+                          key={tag}
+                          variant={
+                            selectedTags.includes(tag) ? "default" : "outline"
+                          }
+                          className="cursor-pointer hover:bg-primary/90 transition-colors"
+                          onClick={() => {
+                            if (selectedTags.includes(tag)) {
+                              setSelectedTags(
+                                selectedTags.filter((t) => t !== tag)
+                              );
+                            } else {
+                              setSelectedTags([...selectedTags, tag]);
+                            }
+                          }}
+                        >
+                          {tag}
+                        </Badge>
                       ))}
                     </div>
                   </div>
@@ -753,7 +763,10 @@ export default function Results() {
                       setSelectedTags([]);
                       setSelectedLocation("any");
                       // Don't reset moqRange - it comes from onboarding
-                      setLeadTimeRange([1, 90]);
+                      // Only reset leadTimeRange if not in quick match mode
+                      if (!userPreferences?.quickMatch) {
+                        setLeadTimeRange([1, 90]);
+                      }
                     }}
                   >
                     Reset

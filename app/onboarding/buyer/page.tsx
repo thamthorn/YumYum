@@ -25,6 +25,7 @@ import {
   CheckCircle2,
   Sparkles,
   Wand2,
+  X,
 } from "lucide-react";
 import Navigation from "@/components/Navigation";
 import ProtectedClient from "@/components/ProtectedClient";
@@ -48,6 +49,7 @@ export default function BuyerOnboarding() {
   const [aiSearch, setAiSearch] = useState(false);
   const [aiSearchQuery, setAiSearchQuery] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [productTypeSearch, setProductTypeSearch] = useState("");
   const [formData, setFormData] = useState<FormData>({
     companyName: "",
     industry: "",
@@ -116,11 +118,47 @@ export default function BuyerOnboarding() {
     enabled: Boolean(formData.industry), // Only fetch when industry is selected
   });
 
+  // Fetch ALL product categories when "Other" industry is selected for smart search
+  const { data: allProductCategories = [] } = useQuery<string[]>({
+    queryKey: ["all-product-categories"],
+    queryFn: async () => {
+      const response = await fetch(`/api/product-categories`);
+      if (!response.ok) {
+        return [];
+      }
+      const body = await response.json();
+      return body.data || [];
+    },
+    enabled: formData.industry === "Other",
+  });
+
+  // Filter product categories based on search input for "Other" industry
+  const filteredProductCategories = useMemo(() => {
+    if (formData.industry !== "Other") {
+      return productCategories;
+    }
+
+    if (!productTypeSearch.trim()) {
+      return allProductCategories.slice(0, 10); // Show first 10 if no search
+    }
+
+    const searchLower = productTypeSearch.toLowerCase();
+    return allProductCategories
+      .filter((category) => category.toLowerCase().includes(searchLower))
+      .slice(0, 10); // Limit to 10 results
+  }, [
+    formData.industry,
+    productCategories,
+    allProductCategories,
+    productTypeSearch,
+  ]);
+
   // Clear product type when industry changes
   useEffect(() => {
     if (formData.productType) {
       updateFormData("productType", "");
     }
+    setProductTypeSearch("");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formData.industry]);
 
@@ -223,6 +261,7 @@ export default function BuyerOnboarding() {
           timeline: formData.timeline,
           productType: formData.productType,
           industry: formData.industry,
+          quickMatch, // Include quickMatch flag
         })
       );
 
@@ -462,35 +501,87 @@ export default function BuyerOnboarding() {
 
                     <div className="space-y-2">
                       <Label htmlFor="product">Product Type</Label>
-                      <Select
-                        value={formData.productType}
-                        onValueChange={(value) =>
-                          updateFormData("productType", value)
-                        }
-                      >
-                        <SelectTrigger id="product">
-                          <SelectValue placeholder="Select product category" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {productCategories.length > 0 ? (
-                            productCategories.map((category) => (
-                              <SelectItem key={category} value={category}>
-                                {category}
-                              </SelectItem>
-                            ))
-                          ) : (
-                            <SelectItem value="loading" disabled>
-                              Loading categories...
-                            </SelectItem>
+                      {formData.industry === "Other" ? (
+                        <div className="space-y-2">
+                          <Input
+                            id="product"
+                            placeholder="Start typing to search product type..."
+                            value={productTypeSearch}
+                            onChange={(e) =>
+                              setProductTypeSearch(e.target.value)
+                            }
+                            onFocus={() =>
+                              setProductTypeSearch(productTypeSearch || "")
+                            }
+                          />
+                          {productTypeSearch.trim() &&
+                            filteredProductCategories.length > 0 && (
+                              <div className="border rounded-md bg-background max-h-48 overflow-y-auto">
+                                {filteredProductCategories.map((category) => (
+                                  <div
+                                    key={category}
+                                    className="px-3 py-2 hover:bg-accent cursor-pointer transition-colors"
+                                    onClick={() => {
+                                      updateFormData("productType", category);
+                                      setProductTypeSearch(category);
+                                    }}
+                                  >
+                                    {category}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          {formData.productType && (
+                            <div className="flex items-center gap-2">
+                              <Badge
+                                variant="secondary"
+                                className="flex items-center gap-1"
+                              >
+                                {formData.productType}
+                                <X
+                                  className="h-3 w-3 cursor-pointer hover:text-destructive"
+                                  onClick={() => {
+                                    updateFormData("productType", "");
+                                    setProductTypeSearch("");
+                                  }}
+                                />
+                              </Badge>
+                            </div>
                           )}
-                        </SelectContent>
-                      </Select>
-                      {formData.industry && productCategories.length === 0 && (
-                        <p className="text-xs text-muted-foreground">
-                          No categories available. Try selecting a different
-                          industry.
-                        </p>
+                        </div>
+                      ) : (
+                        <Select
+                          value={formData.productType}
+                          onValueChange={(value) =>
+                            updateFormData("productType", value)
+                          }
+                        >
+                          <SelectTrigger id="product">
+                            <SelectValue placeholder="Select product category" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {filteredProductCategories.length > 0 ? (
+                              filteredProductCategories.map((category) => (
+                                <SelectItem key={category} value={category}>
+                                  {category}
+                                </SelectItem>
+                              ))
+                            ) : (
+                              <SelectItem value="loading" disabled>
+                                Loading categories...
+                              </SelectItem>
+                            )}
+                          </SelectContent>
+                        </Select>
                       )}
+                      {formData.industry &&
+                        filteredProductCategories.length === 0 &&
+                        formData.industry !== "Other" && (
+                          <p className="text-xs text-muted-foreground">
+                            No categories available. Try selecting a different
+                            industry.
+                          </p>
+                        )}
                     </div>
                   </div>
                 ) : null}

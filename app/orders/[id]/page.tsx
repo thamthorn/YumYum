@@ -55,6 +55,8 @@ type OrderData = {
   status: string;
   created_at: string;
   request_id?: string;
+  shipping_preference?: string;
+  shipping_address?: string;
   oem_organization: {
     display_name: string;
   } | null;
@@ -229,7 +231,7 @@ function OrderClient({ params }: { params: Promise<{ id: string }> }) {
         title: "เงินถูกโอนให้ OEM แล้ว",
         description:
           result.message ||
-          `ยอดเงิน ${formatCurrency(calculatePayment(total).totalToOEM, currency)} ถูกโอนให้ OEM (หักค่าบริการ 5%)`,
+          `ยอดเงิน ${formatCurrency(total, currency)} ถูกโอนให้ OEM แล้ว`,
       });
 
       // Refresh order data
@@ -309,20 +311,21 @@ function OrderClient({ params }: { params: Promise<{ id: string }> }) {
 
   const currency = orderData.order_line_items[0]?.currency || "THB";
 
+  // Calculate shipping fee based on saved shipping preference
+  const shippingFee =
+    orderData.shipping_preference === "buyer-address" ? total * 0.05 : 0;
+
   // Calculate payment breakdown
   const calculatePayment = (orderTotal: number): PaymentBreakdown => {
     const deposit = orderTotal * 0.3;
     const balance = orderTotal * 0.7;
-    const serviceFee = orderTotal * 0.05;
-    const totalToOEM = orderTotal - serviceFee;
 
     return {
       subtotal: orderTotal,
       deposit,
       balance,
-      serviceFee,
-      totalToOEM,
-      totalFromBuyer: orderTotal,
+      shippingFee,
+      totalFromBuyer: orderTotal + shippingFee,
       currency,
     };
   };
@@ -350,21 +353,24 @@ function OrderClient({ params }: { params: Promise<{ id: string }> }) {
       timestamp: new Date().toISOString(),
       description: "Balance payment received before shipment",
     });
+    // Add shipping fee event if there's a shipping fee
+    if (shippingFee > 0) {
+      mockPaymentEvents.push({
+        id: "3",
+        type: "service_fee",
+        amount: shippingFee,
+        currency,
+        status: "completed",
+        timestamp: new Date().toISOString(),
+        description: "Shipping fee",
+      });
+    }
   }
   if (deliveryConfirmed) {
     mockPaymentEvents.push({
-      id: "3",
-      type: "service_fee",
-      amount: calculatePayment(total).serviceFee,
-      currency,
-      status: "completed",
-      timestamp: new Date().toISOString(),
-      description: "Platform service fee (5%)",
-    });
-    mockPaymentEvents.push({
       id: "4",
       type: "release",
-      amount: calculatePayment(total).totalToOEM,
+      amount: total,
       currency,
       status: "completed",
       timestamp: new Date().toISOString(),
@@ -734,24 +740,17 @@ function OrderClient({ params }: { params: Promise<{ id: string }> }) {
                         )}
                       </span>
                     </div>
-                    <div className="pt-2 border-t flex justify-between text-xs text-muted-foreground">
-                      <span>Service Fee (5%):</span>
-                      <span>
-                        {formatCurrency(
-                          calculatePayment(total).serviceFee,
-                          currency
-                        )}
-                      </span>
-                    </div>
-                    <div className="flex justify-between text-xs text-muted-foreground">
-                      <span>OEM Receives:</span>
-                      <span>
-                        {formatCurrency(
-                          calculatePayment(total).totalToOEM,
-                          currency
-                        )}
-                      </span>
-                    </div>
+                    {calculatePayment(total).shippingFee > 0 && (
+                      <div className="pt-2 border-t flex justify-between text-xs text-muted-foreground">
+                        <span>Shipping Fee:</span>
+                        <span>
+                          {formatCurrency(
+                            calculatePayment(total).shippingFee,
+                            currency
+                          )}
+                        </span>
+                      </div>
+                    )}
                   </div>
 
                   {/* Payment Actions */}
@@ -854,11 +853,8 @@ function OrderClient({ params }: { params: Promise<{ id: string }> }) {
                           <div>
                             <p className="font-medium">Payment Released</p>
                             <p className="text-xs text-muted-foreground mt-0.5">
-                              {formatCurrency(
-                                calculatePayment(total).totalToOEM,
-                                currency
-                              )}{" "}
-                              transferred to OEM
+                              {formatCurrency(total, currency)} transferred to
+                              OEM
                             </p>
                           </div>
                         </div>
@@ -1144,7 +1140,6 @@ function OrderClient({ params }: { params: Promise<{ id: string }> }) {
           currency={currency}
           paymentType={paymentType}
           breakdown={calculatePayment(total)}
-          escrowEnabled={true}
           onPaymentComplete={handlePaymentComplete}
         />
       </div>

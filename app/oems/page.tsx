@@ -337,9 +337,9 @@ export default function OEMList() {
                   {oems.map((oem) => (
                     <Card
                       key={oem.id}
-                      className="p-6 hover:shadow-lg transition-shadow"
+                      className="p-6 hover:shadow-lg transition-shadow flex flex-col h-full"
                     >
-                      <div className="space-y-4">
+                      <div className="space-y-4 flex-1">
                         {/* Header */}
                         <div>
                           <div className="flex items-start justify-between mb-2">
@@ -408,8 +408,10 @@ export default function OEMList() {
                             ))}
                           </div>
                         </div>
+                      </div>
 
-                        {/* CTA */}
+                      {/* CTA */}
+                      <div className="mt-auto pt-4">
                         <Button
                           onClick={() => handleViewProfile(oem)}
                           className="w-full"

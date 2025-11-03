@@ -82,6 +82,41 @@ export default function Home() {
                   <span>Cross-border Ready</span>
                 </div>
               </div>
+
+              {/* Trust Partners */}
+              <div className="mt-1 pt-8">
+                <p className="text-sm text-muted-foreground mb-4">
+                  Trusted & Supported By
+                </p>
+                <div className="flex items-center gap-8">
+                  <div className="flex items-center gap-3 p-3 bg-card rounded-lg border border-border/50">
+                    <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
+                      <Globe className="h-5 w-5 text-blue-600" />
+                    </div>
+                    <div>
+                      <div className="font-semibold text-sm">
+                        SEA Bridge Network
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        Strategic Partner
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 p-3 bg-card rounded-lg border border-border/50">
+                    <div className="h-10 w-10 rounded-full bg-orange-100 flex items-center justify-center">
+                      <Factory className="h-5 w-5 text-orange-600" />
+                    </div>
+                    <div>
+                      <div className="font-semibold text-sm">
+                        Paiboon Products
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        Founding OEM Partner
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
             <div className="relative animate-scale-in">
               <Image
@@ -276,6 +311,7 @@ export default function Home() {
       </section>
 
       {/* CTA Section */}
+      {/* Final CTA */}
       <section className="py-20">
         <div className="container mx-auto max-w-[1400px]">
           <Card className="p-12 text-center bg-linear-to-br from-primary/5 to-primary/10 border-primary/20">
@@ -294,6 +330,90 @@ export default function Home() {
               </Button>
             </div>
           </Card>
+        </div>
+      </section>
+
+      {/* Trust & Partners Section */}
+      <section className="py-16 bg-muted/30 border-t border-border">
+        <div className="container mx-auto max-w-[1400px]">
+          <div className="text-center mb-8">
+            <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-6">
+              Trusted Partners & Supporters
+            </p>
+            <div className="flex flex-col md:flex-row justify-center items-center gap-8 md:gap-16">
+              {/* SEA Bridge Network */}
+              <div className="flex flex-col items-center gap-3 group">
+                <div className="h-20 w-20 rounded-2xl bg-linear-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow">
+                  <Globe className="h-10 w-10 text-white" />
+                </div>
+                <div className="text-center">
+                  <div className="font-semibold text-lg">
+                    SEA Bridge Network
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    ASEAN Startup Accelerator
+                  </div>
+                  <Badge variant="outline" className="mt-2 text-xs">
+                    Strategic Partner
+                  </Badge>
+                </div>
+              </div>
+
+              {/* Paiboon Products */}
+              <div className="flex flex-col items-center gap-3 group">
+                <div className="h-20 w-20 rounded-2xl bg-linear-to-br from-orange-500 to-orange-600 flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow">
+                  <Factory className="h-10 w-10 text-white" />
+                </div>
+                <div className="text-center">
+                  <div className="font-semibold text-lg">Paiboon Products</div>
+                  <div className="text-sm text-muted-foreground">
+                    Premium F&B Manufacturing
+                  </div>
+                  <Badge variant="outline" className="mt-2 text-xs">
+                    Founding OEM Partner
+                  </Badge>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Trust Stats */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mt-12 max-w-3xl mx-auto">
+            <div className="text-center">
+              <div className="flex items-center justify-center mb-2">
+                <Shield className="h-5 w-5 text-green-600" />
+              </div>
+              <div className="text-2xl font-bold">100%</div>
+              <div className="text-sm text-muted-foreground">
+                Escrow Protected
+              </div>
+            </div>
+            <div className="text-center">
+              <div className="flex items-center justify-center mb-2">
+                <CheckCircle2 className="h-5 w-5 text-blue-600" />
+              </div>
+              <div className="text-2xl font-bold">Verified</div>
+              <div className="text-sm text-muted-foreground">OEM Partners</div>
+            </div>
+            <div className="text-center">
+              <div className="flex items-center justify-center mb-2">
+                <Users className="h-5 w-5 text-purple-600" />
+              </div>
+              <div className="text-2xl font-bold">500+</div>
+              <div className="text-sm text-muted-foreground">
+                Brands Trust Us
+              </div>
+            </div>
+            <div className="text-center">
+              <div className="flex items-center justify-center mb-2">
+                <TrendingUp className="h-5 w-5 text-orange-600" />
+              </div>
+              <div className="text-2xl font-bold">30+</div>
+              <div className="text-sm text-muted-foreground">
+                Years Experience
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 

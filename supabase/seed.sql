@@ -220,6 +220,42 @@ values
     'premium-packaging-co',
     timezone('utc', now()),
     timezone('utc', now())
+  ),
+  (
+    '00000000-0000-0000-0000-000000000023',
+    'oem',
+    'Thai Spice Masters',
+    'F&B',
+    'Ayutthaya, Thailand',
+    'Authentic Thai seasoning and sauce manufacturing with traditional recipes.',
+    NULL,
+    'thai-spice-masters',
+    timezone('utc', now()),
+    timezone('utc', now())
+  ),
+  (
+    '00000000-0000-0000-0000-000000000024',
+    'oem',
+    'Tropical Beverages Co.',
+    'F&B',
+    'Rayong, Thailand',
+    'Fruit juice and beverage manufacturing using fresh tropical fruits.',
+    NULL,
+    'tropical-beverages-co',
+    timezone('utc', now()),
+    timezone('utc', now())
+  ),
+  (
+    '00000000-0000-0000-0000-000000000025',
+    'oem',
+    'Healthy Bites Factory',
+    'F&B',
+    'Chiang Rai, Thailand',
+    'Health-focused snack production with superfood ingredients.',
+    NULL,
+    'healthy-bites-factory',
+    timezone('utc', now()),
+    timezone('utc', now())
   )
 on conflict (id) do update set
   display_name = excluded.display_name,
@@ -424,6 +460,51 @@ values
     true,
     4.9,
     156,
+    timezone('utc', now()),
+    timezone('utc', now())
+  ),
+  (
+    '00000000-0000-0000-0000-000000000023',
+    'small',
+    300,
+    10000,
+    20,
+    12,
+    true,
+    'Traditional Thai seasonings and sauces with authentic flavors.',
+    true,
+    4.6,
+    38,
+    timezone('utc', now()),
+    timezone('utc', now())
+  ),
+  (
+    '00000000-0000-0000-0000-000000000024',
+    'medium',
+    1000,
+    50000,
+    25,
+    24,
+    true,
+    'Fresh tropical fruit beverages with premium quality ingredients.',
+    true,
+    4.7,
+    67,
+    timezone('utc', now()),
+    timezone('utc', now())
+  ),
+  (
+    '00000000-0000-0000-0000-000000000025',
+    'small',
+    500,
+    15000,
+    30,
+    18,
+    true,
+    'Nutritious snacks made with superfoods and natural ingredients.',
+    true,
+    4.5,
+    29,
     timezone('utc', now()),
     timezone('utc', now())
   )
@@ -633,6 +714,54 @@ values
     'certified',
     timezone('utc', now()),
     timezone('utc', now())
+  ),
+  (
+    '00000000-0000-0000-0000-000000000023',
+    '00000000-0000-0000-0000-000000000206',
+    true,
+    'trusted_partner',
+    timezone('utc', now()),
+    timezone('utc', now())
+  ),
+  (
+    '00000000-0000-0000-0000-000000000023',
+    '00000000-0000-0000-0000-000000000202',
+    true,
+    'verified',
+    timezone('utc', now()),
+    timezone('utc', now())
+  ),
+  (
+    '00000000-0000-0000-0000-000000000024',
+    '00000000-0000-0000-0000-000000000206',
+    true,
+    'certified',
+    timezone('utc', now()),
+    timezone('utc', now())
+  ),
+  (
+    '00000000-0000-0000-0000-000000000024',
+    '00000000-0000-0000-0000-000000000213',
+    true,
+    'verified',
+    timezone('utc', now()),
+    timezone('utc', now())
+  ),
+  (
+    '00000000-0000-0000-0000-000000000025',
+    '00000000-0000-0000-0000-000000000213',
+    true,
+    'certified',
+    timezone('utc', now()),
+    timezone('utc', now())
+  ),
+  (
+    '00000000-0000-0000-0000-000000000025',
+    '00000000-0000-0000-0000-000000000202',
+    true,
+    'verified',
+    timezone('utc', now()),
+    timezone('utc', now())
   )
 on conflict (oem_org_id, certification_id) do update set
   verified = excluded.verified,
@@ -685,7 +814,16 @@ values
   ('00000000-0000-0000-0000-000000000022', '00000000-0000-0000-0000-000000000305', timezone('utc', now())),
   ('00000000-0000-0000-0000-000000000022', '00000000-0000-0000-0000-000000000320', timezone('utc', now())),
   ('00000000-0000-0000-0000-000000000022', '00000000-0000-0000-0000-000000000303', timezone('utc', now())),
-  ('00000000-0000-0000-0000-000000000022', '00000000-0000-0000-0000-000000000306', timezone('utc', now()))
+  ('00000000-0000-0000-0000-000000000022', '00000000-0000-0000-0000-000000000306', timezone('utc', now())),
+  ('00000000-0000-0000-0000-000000000023', '00000000-0000-0000-0000-000000000314', timezone('utc', now())),
+  ('00000000-0000-0000-0000-000000000023', '00000000-0000-0000-0000-000000000301', timezone('utc', now())),
+  ('00000000-0000-0000-0000-000000000023', '00000000-0000-0000-0000-000000000304', timezone('utc', now())),
+  ('00000000-0000-0000-0000-000000000024', '00000000-0000-0000-0000-000000000314', timezone('utc', now())),
+  ('00000000-0000-0000-0000-000000000024', '00000000-0000-0000-0000-000000000301', timezone('utc', now())),
+  ('00000000-0000-0000-0000-000000000024', '00000000-0000-0000-0000-000000000303', timezone('utc', now())),
+  ('00000000-0000-0000-0000-000000000025', '00000000-0000-0000-0000-000000000314', timezone('utc', now())),
+  ('00000000-0000-0000-0000-000000000025', '00000000-0000-0000-0000-000000000301', timezone('utc', now())),
+  ('00000000-0000-0000-0000-000000000025', '00000000-0000-0000-0000-000000000313', timezone('utc', now()))
 on conflict (oem_org_id, service_id) do nothing;
 
 -- OEM languages
@@ -718,7 +856,14 @@ values
   ('00000000-0000-0000-0000-000000000021', 'th', 'native', timezone('utc', now())),
   ('00000000-0000-0000-0000-000000000022', 'en', 'native', timezone('utc', now())),
   ('00000000-0000-0000-0000-000000000022', 'th', 'native', timezone('utc', now())),
-  ('00000000-0000-0000-0000-000000000022', 'zh', 'business', timezone('utc', now()))
+  ('00000000-0000-0000-0000-000000000022', 'zh', 'business', timezone('utc', now())),
+  ('00000000-0000-0000-0000-000000000023', 'en', 'business', timezone('utc', now())),
+  ('00000000-0000-0000-0000-000000000023', 'th', 'native', timezone('utc', now())),
+  ('00000000-0000-0000-0000-000000000024', 'en', 'business', timezone('utc', now())),
+  ('00000000-0000-0000-0000-000000000024', 'th', 'native', timezone('utc', now())),
+  ('00000000-0000-0000-0000-000000000024', 'zh', 'conversational', timezone('utc', now())),
+  ('00000000-0000-0000-0000-000000000025', 'en', 'business', timezone('utc', now())),
+  ('00000000-0000-0000-0000-000000000025', 'th', 'native', timezone('utc', now()))
 on conflict (oem_org_id, language_code) do update set
   proficiency = excluded.proficiency,
   created_at = excluded.created_at;
@@ -947,3 +1092,485 @@ on conflict (id) do update set
   tags = excluded.tags,
   note = excluded.note,
   created_at = excluded.created_at;
+
+-- Products
+insert into public.products (
+  id,
+  oem_org_id,
+  name,
+  description,
+  category,
+  sku,
+  image_url,
+  specifications,
+  lead_time_days,
+  moq,
+  is_active
+)
+values
+  (
+    '00000000-0000-0000-0000-000000000501',
+    '00000000-0000-0000-0000-000000000011',
+    'Premium Cotton T-Shirt',
+    'High-quality 100% organic cotton t-shirt with custom printing options. Perfect for fashion brands and promotional merchandise.',
+    'Apparel',
+    'PFC-TS-001',
+    'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=800&h=600&fit=crop',
+    '{"material": "100% Organic Cotton", "weight": "180 GSM", "sizes": ["XS", "S", "M", "L", "XL", "XXL"], "colors": ["White", "Black", "Navy", "Gray"], "printing": "Screen print or DTG available"}'::jsonb,
+    30,
+    500,
+    true
+  ),
+  (
+    '00000000-0000-0000-0000-000000000502',
+    '00000000-0000-0000-0000-000000000011',
+    'Eco-Friendly Tote Bag',
+    'Sustainable canvas tote bag with reinforced handles. Ideal for retail packaging or promotional giveaways.',
+    'Accessories',
+    'PFC-TB-002',
+    'https://images.unsplash.com/photo-1590874103328-eac38a683ce7?w=800&h=600&fit=crop',
+    '{"material": "Organic Canvas", "dimensions": "38cm x 42cm x 10cm", "handle_length": "65cm", "weight": "120 GSM", "customization": "Logo print, embroidery available"}'::jsonb,
+    25,
+    1000,
+    true
+  ),
+  (
+    '00000000-0000-0000-0000-000000000503',
+    '00000000-0000-0000-0000-000000000011',
+    'Silk Scarf Collection',
+    'Luxurious 100% mulberry silk scarves with custom patterns. Premium gift item or fashion accessory.',
+    'Accessories',
+    'PFC-SC-003',
+    'https://images.unsplash.com/photo-1601924994987-69e26d50dc26?w=800&h=600&fit=crop',
+    '{"material": "100% Mulberry Silk", "dimensions": "90cm x 90cm", "weight": "16 Momme", "finish": "Hand-rolled edges", "printing": "Digital print, custom designs"}'::jsonb,
+    45,
+    200,
+    true
+  ),
+
+  -- Products for Artisan Textiles (Fashion)
+  (
+    '00000000-0000-0000-0000-000000000504',
+    '00000000-0000-0000-0000-000000000012',
+    'Hand-Woven Cushion Cover',
+    'Artisan hand-woven cushion covers using traditional Thai weaving techniques. Each piece is unique.',
+    'Home Decor',
+    'AT-CC-001',
+    'https://images.unsplash.com/photo-1615876234886-fd9a39fda97f?w=800&h=600&fit=crop',
+    '{"material": "Cotton & Silk Blend", "dimensions": "45cm x 45cm", "technique": "Hand-woven", "patterns": "Traditional Thai patterns", "colors": "Natural dyes available"}'::jsonb,
+    35,
+    100,
+    true
+  ),
+  (
+    '00000000-0000-0000-0000-000000000505',
+    '00000000-0000-0000-0000-000000000012',
+    'Custom Embroidered Denim Jacket',
+    'Premium denim jacket with custom embroidery services. Perfect for fashion brands looking for unique pieces.',
+    'Apparel',
+    'AT-DJ-002',
+    'https://images.unsplash.com/photo-1551028719-00167b16eac5?w=800&h=600&fit=crop',
+    '{"material": "100% Cotton Denim", "weight": "12 oz", "sizes": ["S", "M", "L", "XL"], "embroidery": "Custom designs up to 10 colors", "wash": "Stone washed finish"}'::jsonb,
+    40,
+    150,
+    true
+  ),
+
+  -- Products for Swift Fashion Studio (Fashion)
+  (
+    '00000000-0000-0000-0000-000000000506',
+    '00000000-0000-0000-0000-000000000013',
+    'Organic Cotton A-Line Skirt',
+    'Sustainable fashion piece with organic cotton fabric. Perfect for eco-conscious brands and rapid testing.',
+    'Apparel',
+    'SFS-SKT-001',
+    'https://images.unsplash.com/photo-1583496661160-fb5886a0aaaa?w=800&h=600&fit=crop',
+    '{"material": "100% Organic Cotton", "sizes": ["XS", "S", "M", "L", "XL"], "colors": ["Navy", "Black", "Beige"], "length": "Knee-length", "customization": "Custom dye colors available"}'::jsonb,
+    14,
+    100,
+    true
+  ),
+  (
+    '00000000-0000-0000-0000-000000000507',
+    '00000000-0000-0000-0000-000000000013',
+    'Streetwear Hoodie Collection',
+    'Contemporary hoodie design with custom embroidery options. Ideal for fashion startups and limited drops.',
+    'Apparel',
+    'SFS-HD-002',
+    'https://images.unsplash.com/photo-1556821840-3a63f95609a7?w=800&h=600&fit=crop',
+    '{"material": "80% Cotton, 20% Polyester", "weight": "350 GSM", "sizes": ["S", "M", "L", "XL", "XXL"], "customization": "Screen print, embroidery, patches", "wash": "Pre-shrunk"}'::jsonb,
+    14,
+    100,
+    true
+  ),
+
+  -- Products for Food Innovation Labs (F&B)
+  (
+    '00000000-0000-0000-0000-000000000508',
+    '00000000-0000-0000-0000-000000000014',
+    'Cold-Pressed Green Juice',
+    'Organic cold-pressed juice blend with kale, cucumber, and apple. Premium health beverage.',
+    'Beverages',
+    'FIL-GJ-001',
+    'https://images.unsplash.com/photo-1610970881699-44a5587cabec?w=800&h=600&fit=crop',
+    '{"ingredients": "Kale, Cucumber, Green Apple, Lemon, Ginger", "volume": "300ml", "shelf_life": "7 days refrigerated", "packaging": "Glass bottle", "certifications": ["USDA Organic", "Non-GMO"]}'::jsonb,
+    15,
+    500,
+    true
+  ),
+  (
+    '00000000-0000-0000-0000-000000000509',
+    '00000000-0000-0000-0000-000000000014',
+    'Herbal Tea Sachets - Lemongrass',
+    'Premium organic lemongrass tea in biodegradable pyramid sachets. Refreshing and calming blend.',
+    'Beverages',
+    'FIL-LT-002',
+    'https://unsplash.com/photos/tea-bag-lemon-and-sugar-hanging-on-the-rope-over-splashing-tea-in-the-cup-on-blue-background-creative-still-life-cFDr7NOtjNU?w=800&h=600&fit=crop',
+    '{"ingredients": "100% Organic Lemongrass", "sachets_per_box": "20", "weight_per_sachet": "2g", "packaging": "Compostable pyramid sachets", "shelf_life": "24 months"}'::jsonb,
+    30,
+    2000,
+    true
+  ),
+
+  -- Products for Organic Snacks Co. (F&B)
+  (
+    '00000000-0000-0000-0000-000000000510',
+    '00000000-0000-0000-0000-000000000015',
+    'Organic Granola Mix',
+    'Premium organic granola with nuts, seeds, and dried fruits. Perfect for health-conscious brands.',
+    'Snacks',
+    'OSC-GRA-001',
+    'https://images.unsplash.com/photo-1526318896980-cf78c088247c?w=800&h=600&fit=crop',
+    '{"ingredients": "Organic Oats, Almonds, Honey, Dried Cranberries, Coconut", "weight_per_bag": "500g", "shelf_life": "12 months", "packaging": "Resealable kraft pouch", "certifications": ["USDA Organic", "Non-GMO"]}'::jsonb,
+    30,
+    1000,
+    true
+  ),
+  (
+    '00000000-0000-0000-0000-000000000511',
+    '00000000-0000-0000-0000-000000000015',
+    'Thai Coconut Chips - Sea Salt',
+    'Crispy coconut chips made from premium Thai coconuts. Light, healthy snack with no artificial additives.',
+    'Snacks',
+    'OSC-CC-002',
+    'https://images.unsplash.com/photo-1599490659213-e2b9527bd087?w=800&h=600&fit=crop',
+    '{"ingredients": "Coconut, Sea Salt, Coconut Oil", "weight_per_bag": "40g", "shelf_life": "12 months", "packaging": "Resealable pouch", "certifications": ["Organic", "Non-GMO"]}'::jsonb,
+    25,
+    5000,
+    true
+  ),
+
+  -- Products for Bangkok Beauty Labs (Cosmetics)
+  (
+    '00000000-0000-0000-0000-000000000512',
+    '00000000-0000-0000-0000-000000000016',
+    'Luxury Rose Face Cream',
+    'Premium anti-aging face cream with damascus rose extract and gold peptides. Ultra-luxurious formula.',
+    'Skincare',
+    'BBL-RFC-001',
+    'https://images.unsplash.com/photo-1571875257727-256c39da42af?w=800&h=600&fit=crop',
+    '{"key_ingredients": "Damascus Rose Extract, Gold Peptides, Retinol, Squalane", "volume": "50ml", "packaging": "Luxury glass jar with gold cap", "certifications": ["FDA Registered"], "shelf_life": "24 months"}'::jsonb,
+    45,
+    300,
+    true
+  ),
+
+  -- Products for EcoPack Solutions (Packaging)
+  (
+    '00000000-0000-0000-0000-000000000513',
+    '00000000-0000-0000-0000-000000000021',
+    'Compostable Food Container',
+    'Biodegradable food container made from sugarcane bagasse. Perfect for takeaway meals.',
+    'Food Packaging',
+    'EPS-CFC-001',
+    'https://images.unsplash.com/photo-1607619056574-7b8d3ee536b2?w=800&h=600&fit=crop',
+    '{"material": "Sugarcane Bagasse", "dimensions": "23cm x 15cm x 5cm", "capacity": "1000ml", "temperature_range": "-20°C to 120°C", "certifications": ["Compostable", "FDA Approved"]}'::jsonb,
+    20,
+    10000,
+    true
+  ),
+  (
+    '00000000-0000-0000-0000-000000000514',
+    '00000000-0000-0000-0000-000000000021',
+    'Kraft Paper Mailer Box',
+    'Eco-friendly shipping box with custom printing. Strong and sustainable e-commerce packaging.',
+    'Shipping Packaging',
+    'EPS-KPM-002',
+    'https://images.unsplash.com/photo-1605461522175-47db3a053e0c?w=800&h=600&fit=crop',
+    '{"material": "100% Recycled Kraft Paper", "dimensions": "30cm x 20cm x 10cm", "weight_capacity": "5kg", "customization": "Full-color printing available", "assembly": "Self-locking design"}'::jsonb,
+    25,
+    5000,
+    true
+  ),
+
+  -- Products for Premium Packaging Co. (Packaging)
+  (
+    '00000000-0000-0000-0000-000000000515',
+    '00000000-0000-0000-0000-000000000022',
+    'Luxury Gift Box with Magnetic Closure',
+    'Premium rigid gift box with magnetic closure. Perfect for high-end products and luxury brands.',
+    'Gift Packaging',
+    'PPC-LGB-001',
+    'https://images.unsplash.com/photo-1549465220-1a8b9238cd48?w=800&h=600&fit=crop',
+    '{"material": "Rigid Cardboard with Art Paper", "dimensions": "25cm x 20cm x 8cm", "finish": "Matte lamination with spot UV", "closure": "Hidden magnetic closure", "customization": "Embossing, foil stamping available"}'::jsonb,
+    35,
+    1000,
+    true
+  ),
+
+  -- Products for Thai Spice Masters (F&B)
+  (
+    '00000000-0000-0000-0000-000000000516',
+    '00000000-0000-0000-0000-000000000023',
+    'Tom Yum Paste - Authentic Recipe',
+    'Traditional Thai Tom Yum paste with authentic herbs and spices. Ready-to-use for quick meal preparation.',
+    'Condiments',
+    'TSM-TYP-001',
+    'https://images.unsplash.com/photo-1559847844-5315695dadae?w=800&h=600&fit=crop',
+    '{"ingredients": "Lemongrass, Galangal, Kaffir Lime, Chili, Shrimp Paste", "weight_per_jar": "200g", "shelf_life": "18 months", "spice_level": "Medium-Hot", "usage": "Add 2 tbsp per 500ml soup", "certifications": ["GMP", "HACCP"]}'::jsonb,
+    20,
+    300,
+    true
+  ),
+  (
+    '00000000-0000-0000-0000-000000000517',
+    '00000000-0000-0000-0000-000000000023',
+    'Green Curry Paste - Traditional Blend',
+    'Authentic Thai green curry paste made with fresh green chilies and aromatic herbs. Restaurant-quality flavor.',
+    'Condiments',
+    'TSM-GCP-002',
+    'https://images.unsplash.com/photo-1455619452474-d2be8b1e70cd?w=800&h=600&fit=crop',
+    '{"ingredients": "Green Chili, Garlic, Lemongrass, Galangal, Coriander Root, Cumin", "weight_per_jar": "200g", "shelf_life": "18 months", "spice_level": "Hot", "usage": "Add 3 tbsp per 400ml coconut milk", "certifications": ["GMP", "Halal"]}'::jsonb,
+    20,
+    300,
+    true
+  ),
+
+  -- Products for Tropical Beverages Co. (F&B)
+  (
+    '00000000-0000-0000-0000-000000000518',
+    '00000000-0000-0000-0000-000000000024',
+    'Fresh Mango Juice - 100% Pure',
+    'Pure pressed mango juice from premium Thai mangoes. No added sugar or preservatives.',
+    'Beverages',
+    'TBC-MJ-001',
+    'https://images.unsplash.com/photo-1600271886742-f049cd451bba?w=800&h=600&fit=crop',
+    '{"ingredients": "100% Mango", "volume_per_bottle": "300ml", "shelf_life": "12 months (unopened)", "packaging": "Glass bottle or Tetra Pak", "brix_level": "14-16", "certifications": ["Organic", "Non-GMO"]}'::jsonb,
+    25,
+    1000,
+    true
+  ),
+  (
+    '00000000-0000-0000-0000-000000000519',
+    '00000000-0000-0000-0000-000000000024',
+    'Pineapple Coconut Water Blend',
+    'Refreshing blend of fresh pineapple juice and pure coconut water. Natural electrolyte drink.',
+    'Beverages',
+    'TBC-PCW-002',
+    'https://images.unsplash.com/photo-1546548970-71785318a17b?w=800&h=600&fit=crop',
+    '{"ingredients": "Coconut Water 60%, Pineapple Juice 40%", "volume_per_bottle": "330ml", "shelf_life": "12 months", "packaging": "Aluminum can or PET bottle", "sugar_content": "Natural sugars only", "certifications": ["Organic"]}'::jsonb,
+    25,
+    1000,
+    true
+  ),
+
+  -- Products for Healthy Bites Factory (F&B)
+  (
+    '00000000-0000-0000-0000-000000000520',
+    '00000000-0000-0000-0000-000000000025',
+    'Superfood Energy Balls',
+    'Nutrient-dense energy balls packed with dates, nuts, and superfoods. Perfect healthy snack.',
+    'Snacks',
+    'HBF-SEB-001',
+    'https://images.unsplash.com/photo-1607623814075-e51df1bdc82f?w=800&h=600&fit=crop',
+    '{"ingredients": "Dates, Almonds, Chia Seeds, Cacao, Coconut", "weight_per_pack": "120g (6 balls)", "shelf_life": "6 months", "packaging": "Biodegradable pouch", "allergens": "Contains nuts", "certifications": ["Vegan", "Gluten-Free", "Organic"]}'::jsonb,
+    30,
+    500,
+    true
+  ),
+  (
+    '00000000-0000-0000-0000-000000000521',
+    '00000000-0000-0000-0000-000000000025',
+    'Quinoa Protein Bars',
+    'High-protein snack bars with quinoa, nuts, and dried fruits. Clean ingredients only.',
+    'Snacks',
+    'HBF-QPB-002',
+    'https://images.unsplash.com/photo-1604497181015-76590d828689?w=800&h=600&fit=crop',
+    '{"ingredients": "Quinoa, Almonds, Dates, Hemp Seeds, Dark Chocolate", "weight_per_bar": "45g", "protein_per_bar": "8g", "shelf_life": "12 months", "packaging": "Individual wrapper in kraft box", "certifications": ["Vegan", "Non-GMO", "High Protein"]}'::jsonb,
+    30,
+    500,
+    true
+  )
+on conflict (id) do update set
+  name = excluded.name,
+  description = excluded.description,
+  category = excluded.category,
+  sku = excluded.sku,
+  image_url = excluded.image_url,
+  specifications = excluded.specifications,
+  lead_time_days = excluded.lead_time_days,
+  moq = excluded.moq,
+  is_active = excluded.is_active;
+
+-- Product Pricing Tiers
+insert into public.product_pricing (
+  id,
+  product_id,
+  min_quantity,
+  max_quantity,
+  unit_price,
+  currency
+)
+values
+  -- Premium Cotton T-Shirt pricing (economy of scale)
+  ('00000000-0000-0000-0000-000000000601', '00000000-0000-0000-0000-000000000501', 500, 999, 8.50, 'USD'),
+  ('00000000-0000-0000-0000-000000000602', '00000000-0000-0000-0000-000000000501', 1000, 2499, 7.80, 'USD'),
+  ('00000000-0000-0000-0000-000000000603', '00000000-0000-0000-0000-000000000501', 2500, 4999, 7.20, 'USD'),
+  ('00000000-0000-0000-0000-000000000604', '00000000-0000-0000-0000-000000000501', 5000, null, 6.50, 'USD'),
+
+  -- Eco-Friendly Tote Bag pricing
+  ('00000000-0000-0000-0000-000000000605', '00000000-0000-0000-0000-000000000502', 1000, 2499, 3.50, 'USD'),
+  ('00000000-0000-0000-0000-000000000606', '00000000-0000-0000-0000-000000000502', 2500, 4999, 3.20, 'USD'),
+  ('00000000-0000-0000-0000-000000000607', '00000000-0000-0000-0000-000000000502', 5000, 9999, 2.90, 'USD'),
+  ('00000000-0000-0000-0000-000000000608', '00000000-0000-0000-0000-000000000502', 10000, null, 2.50, 'USD'),
+
+  -- Silk Scarf Collection pricing
+  ('00000000-0000-0000-0000-000000000609', '00000000-0000-0000-0000-000000000503', 200, 499, 28.00, 'USD'),
+  ('00000000-0000-0000-0000-000000000610', '00000000-0000-0000-0000-000000000503', 500, 999, 25.50, 'USD'),
+  ('00000000-0000-0000-0000-000000000611', '00000000-0000-0000-0000-000000000503', 1000, null, 23.00, 'USD'),
+
+  -- Hand-Woven Cushion Cover pricing
+  ('00000000-0000-0000-0000-000000000612', '00000000-0000-0000-0000-000000000504', 100, 249, 18.00, 'USD'),
+  ('00000000-0000-0000-0000-000000000613', '00000000-0000-0000-0000-000000000504', 250, 499, 16.50, 'USD'),
+  ('00000000-0000-0000-0000-000000000614', '00000000-0000-0000-0000-000000000504', 500, null, 15.00, 'USD'),
+
+  -- Custom Embroidered Denim Jacket pricing
+  ('00000000-0000-0000-0000-000000000615', '00000000-0000-0000-0000-000000000505', 150, 299, 42.00, 'USD'),
+  ('00000000-0000-0000-0000-000000000616', '00000000-0000-0000-0000-000000000505', 300, 499, 38.50, 'USD'),
+  ('00000000-0000-0000-0000-000000000617', '00000000-0000-0000-0000-000000000505', 500, null, 35.00, 'USD'),
+
+  -- Coconut Chips pricing
+  ('00000000-0000-0000-0000-000000000618', '00000000-0000-0000-0000-000000000506', 5000, 9999, 1.20, 'USD'),
+  ('00000000-0000-0000-0000-000000000619', '00000000-0000-0000-0000-000000000506', 10000, 24999, 1.05, 'USD'),
+  ('00000000-0000-0000-0000-000000000620', '00000000-0000-0000-0000-000000000506', 25000, 49999, 0.95, 'USD'),
+  ('00000000-0000-0000-0000-000000000621', '00000000-0000-0000-0000-000000000506', 50000, null, 0.85, 'USD'),
+
+  -- Mango Sticky Rice Snack Bar pricing
+  ('00000000-0000-0000-0000-000000000622', '00000000-0000-0000-0000-000000000507', 10000, 19999, 1.35, 'USD'),
+  ('00000000-0000-0000-0000-000000000623', '00000000-0000-0000-0000-000000000507', 20000, 49999, 1.20, 'USD'),
+  ('00000000-0000-0000-0000-000000000624', '00000000-0000-0000-0000-000000000507', 50000, null, 1.05, 'USD'),
+
+  -- Cold-Pressed Green Juice pricing
+  ('00000000-0000-0000-0000-000000000625', '00000000-0000-0000-0000-000000000508', 500, 999, 4.50, 'USD'),
+  ('00000000-0000-0000-0000-000000000626', '00000000-0000-0000-0000-000000000508', 1000, 2499, 4.20, 'USD'),
+  ('00000000-0000-0000-0000-000000000627', '00000000-0000-0000-0000-000000000508', 2500, null, 3.80, 'USD'),
+
+  -- Herbal Tea Sachets pricing
+  ('00000000-0000-0000-0000-000000000628', '00000000-0000-0000-0000-000000000509', 2000, 4999, 6.50, 'USD'),
+  ('00000000-0000-0000-0000-000000000629', '00000000-0000-0000-0000-000000000509', 5000, 9999, 5.80, 'USD'),
+  ('00000000-0000-0000-0000-000000000630', '00000000-0000-0000-0000-000000000509', 10000, null, 5.20, 'USD'),
+
+  -- Vitamin C Serum pricing
+  ('00000000-0000-0000-0000-000000000631', '00000000-0000-0000-0000-000000000510', 500, 999, 12.50, 'USD'),
+  ('00000000-0000-0000-0000-000000000632', '00000000-0000-0000-0000-000000000510', 1000, 2499, 11.20, 'USD'),
+  ('00000000-0000-0000-0000-000000000633', '00000000-0000-0000-0000-000000000510', 2500, 4999, 10.00, 'USD'),
+  ('00000000-0000-0000-0000-000000000634', '00000000-0000-0000-0000-000000000510', 5000, null, 9.00, 'USD'),
+
+  -- Hyaluronic Acid Moisturizer pricing
+  ('00000000-0000-0000-0000-000000000635', '00000000-0000-0000-0000-000000000511', 1000, 2499, 8.50, 'USD'),
+  ('00000000-0000-0000-0000-000000000636', '00000000-0000-0000-0000-000000000511', 2500, 4999, 7.80, 'USD'),
+  ('00000000-0000-0000-0000-000000000637', '00000000-0000-0000-0000-000000000511', 5000, null, 7.00, 'USD'),
+
+  -- Luxury Rose Face Cream pricing
+  ('00000000-0000-0000-0000-000000000638', '00000000-0000-0000-0000-000000000512', 300, 499, 35.00, 'USD'),
+  ('00000000-0000-0000-0000-000000000639', '00000000-0000-0000-0000-000000000512', 500, 999, 32.00, 'USD'),
+  ('00000000-0000-0000-0000-000000000640', '00000000-0000-0000-0000-000000000512', 1000, null, 29.00, 'USD'),
+
+  -- Compostable Food Container pricing
+  ('00000000-0000-0000-0000-000000000641', '00000000-0000-0000-0000-000000000513', 10000, 24999, 0.45, 'USD'),
+  ('00000000-0000-0000-0000-000000000642', '00000000-0000-0000-0000-000000000513', 25000, 49999, 0.38, 'USD'),
+  ('00000000-0000-0000-0000-000000000643', '00000000-0000-0000-0000-000000000513', 50000, 99999, 0.32, 'USD'),
+  ('00000000-0000-0000-0000-000000000644', '00000000-0000-0000-0000-000000000513', 100000, null, 0.28, 'USD'),
+
+  -- Kraft Paper Mailer Box pricing
+  ('00000000-0000-0000-0000-000000000645', '00000000-0000-0000-0000-000000000514', 5000, 9999, 1.20, 'USD'),
+  ('00000000-0000-0000-0000-000000000646', '00000000-0000-0000-0000-000000000514', 10000, 24999, 1.05, 'USD'),
+  ('00000000-0000-0000-0000-000000000647', '00000000-0000-0000-0000-000000000514', 25000, null, 0.90, 'USD'),
+
+  -- Luxury Gift Box pricing
+  ('00000000-0000-0000-0000-000000000648', '00000000-0000-0000-0000-000000000515', 1000, 2499, 5.80, 'USD'),
+  ('00000000-0000-0000-0000-000000000649', '00000000-0000-0000-0000-000000000515', 2500, 4999, 5.20, 'USD'),
+  ('00000000-0000-0000-0000-000000000650', '00000000-0000-0000-0000-000000000515', 5000, null, 4.60, 'USD'),
+
+  -- Tom Yum Paste pricing
+  ('00000000-0000-0000-0000-000000000651', '00000000-0000-0000-0000-000000000516', 300, 999, 3.50, 'USD'),
+  ('00000000-0000-0000-0000-000000000652', '00000000-0000-0000-0000-000000000516', 1000, 2999, 3.00, 'USD'),
+  ('00000000-0000-0000-0000-000000000653', '00000000-0000-0000-0000-000000000516', 3000, 4999, 2.70, 'USD'),
+  ('00000000-0000-0000-0000-000000000654', '00000000-0000-0000-0000-000000000516', 5000, null, 2.40, 'USD'),
+
+  -- Green Curry Paste pricing
+  ('00000000-0000-0000-0000-000000000655', '00000000-0000-0000-0000-000000000517', 300, 999, 3.50, 'USD'),
+  ('00000000-0000-0000-0000-000000000656', '00000000-0000-0000-0000-000000000517', 1000, 2999, 3.00, 'USD'),
+  ('00000000-0000-0000-0000-000000000657', '00000000-0000-0000-0000-000000000517', 3000, 4999, 2.70, 'USD'),
+  ('00000000-0000-0000-0000-000000000658', '00000000-0000-0000-0000-000000000517', 5000, null, 2.40, 'USD'),
+
+  -- Fresh Mango Juice pricing
+  ('00000000-0000-0000-0000-000000000659', '00000000-0000-0000-0000-000000000518', 1000, 2499, 2.80, 'USD'),
+  ('00000000-0000-0000-0000-000000000660', '00000000-0000-0000-0000-000000000518', 2500, 4999, 2.50, 'USD'),
+  ('00000000-0000-0000-0000-000000000661', '00000000-0000-0000-0000-000000000518', 5000, 9999, 2.20, 'USD'),
+  ('00000000-0000-0000-0000-000000000662', '00000000-0000-0000-0000-000000000518', 10000, null, 1.90, 'USD'),
+
+  -- Pineapple Coconut Water Blend pricing
+  ('00000000-0000-0000-0000-000000000663', '00000000-0000-0000-0000-000000000519', 1000, 2499, 2.80, 'USD'),
+  ('00000000-0000-0000-0000-000000000664', '00000000-0000-0000-0000-000000000519', 2500, 4999, 2.50, 'USD'),
+  ('00000000-0000-0000-0000-000000000665', '00000000-0000-0000-0000-000000000519', 5000, 9999, 2.20, 'USD'),
+  ('00000000-0000-0000-0000-000000000666', '00000000-0000-0000-0000-000000000519', 10000, null, 1.90, 'USD'),
+
+  -- Superfood Energy Balls pricing
+  ('00000000-0000-0000-0000-000000000667', '00000000-0000-0000-0000-000000000520', 500, 999, 6.50, 'USD'),
+  ('00000000-0000-0000-0000-000000000668', '00000000-0000-0000-0000-000000000520', 1000, 2499, 5.80, 'USD'),
+  ('00000000-0000-0000-0000-000000000669', '00000000-0000-0000-0000-000000000520', 2500, 4999, 5.20, 'USD'),
+  ('00000000-0000-0000-0000-000000000670', '00000000-0000-0000-0000-000000000520', 5000, null, 4.50, 'USD'),
+
+  -- Quinoa Protein Bars pricing
+  ('00000000-0000-0000-0000-000000000671', '00000000-0000-0000-0000-000000000521', 500, 999, 2.80, 'USD'),
+  ('00000000-0000-0000-0000-000000000672', '00000000-0000-0000-0000-000000000521', 1000, 2499, 2.50, 'USD'),
+  ('00000000-0000-0000-0000-000000000673', '00000000-0000-0000-0000-000000000521', 2500, 4999, 2.20, 'USD'),
+  ('00000000-0000-0000-0000-000000000674', '00000000-0000-0000-0000-000000000521', 5000, null, 1.90, 'USD')
+on conflict (id) do update set
+  min_quantity = excluded.min_quantity,
+  max_quantity = excluded.max_quantity,
+  unit_price = excluded.unit_price,
+  currency = excluded.currency;
+
+-- Product Images (additional images for products)
+insert into public.product_images (
+  id,
+  product_id,
+  image_url,
+  alt_text,
+  display_order,
+  is_primary
+)
+values
+  -- Premium Cotton T-Shirt images
+  ('00000000-0000-0000-0000-000000000701', '00000000-0000-0000-0000-000000000501', 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=800&h=600&fit=crop', 'Premium Cotton T-Shirt - Front View', 0, true),
+  ('00000000-0000-0000-0000-000000000702', '00000000-0000-0000-0000-000000000501', 'https://images.unsplash.com/photo-1583743814966-8936f5b7be1a?w=800&h=600&fit=crop', 'Premium Cotton T-Shirt - Back View', 1, false),
+  ('00000000-0000-0000-0000-000000000703', '00000000-0000-0000-0000-000000000501', 'https://images.unsplash.com/photo-1622470953794-aa9c70b0fb9d?w=800&h=600&fit=crop', 'Premium Cotton T-Shirt - Detail', 2, false),
+
+  -- Silk Scarf images
+  ('00000000-0000-0000-0000-000000000704', '00000000-0000-0000-0000-000000000503', 'https://images.unsplash.com/photo-1601924994987-69e26d50dc26?w=800&h=600&fit=crop', 'Silk Scarf - Main Image', 0, true),
+  ('00000000-0000-0000-0000-000000000705', '00000000-0000-0000-0000-000000000503', 'https://images.unsplash.com/photo-1590736969955-71cc94901144?w=800&h=600&fit=crop', 'Silk Scarf - Pattern Detail', 1, false),
+
+  -- Vitamin C Serum images
+  ('00000000-0000-0000-0000-000000000706', '00000000-0000-0000-0000-000000000510', 'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?w=800&h=600&fit=crop', 'Vitamin C Serum - Product Shot', 0, true),
+  ('00000000-0000-0000-0000-000000000707', '00000000-0000-0000-0000-000000000510', 'https://images.unsplash.com/photo-1608248597279-f99d160bfcbc?w=800&h=600&fit=crop', 'Vitamin C Serum - Texture', 1, false),
+
+  -- Compostable Food Container images
+  ('00000000-0000-0000-0000-000000000708', '00000000-0000-0000-0000-000000000513', 'https://images.unsplash.com/photo-1607619056574-7b8d3ee536b2?w=800&h=600&fit=crop', 'Compostable Container - Main', 0, true),
+  ('00000000-0000-0000-0000-000000000709', '00000000-0000-0000-0000-000000000513', 'https://images.unsplash.com/photo-1610557992985-655c7e39b6ac?w=800&h=600&fit=crop', 'Compostable Container - With Food', 1, false)
+on conflict (id) do update set
+  image_url = excluded.image_url,
+  alt_text = excluded.alt_text,
+  display_order = excluded.display_order,
+  is_primary = excluded.is_primary;

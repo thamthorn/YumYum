@@ -9,10 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 export function OEMFinancialStats() {
   const { toast } = useToast();
 
-  const {
-    data: financials,
-    isLoading,
-  } = useQuery({
+  const { data: financials, isLoading } = useQuery({
     queryKey: ["oem-financials"],
     queryFn: async () => {
       const response = await fetch("/api/oem/financials");

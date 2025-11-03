@@ -34,8 +34,8 @@ export async function GET() {
 
     const oemOrgId = orgMember.organization_id;
     const oemOrgName =
-      (orgMember as { organizations?: { display_name?: string } })
-        .organizations?.display_name || "OEM Organization";
+      (orgMember as { organizations?: { display_name?: string } }).organizations
+        ?.display_name || "OEM Organization";
 
     // Get financial summary from view
     const { data: financials, error: financialsError } = await supabase

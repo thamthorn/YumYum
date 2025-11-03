@@ -368,9 +368,8 @@ function DashboardContent() {
         .eq("profile_id", session.user.id)
         .single();
 
-      const buyerOrgId =
-        (orgMember as unknown as { organization_id?: string })
-          ?.organization_id;
+      const buyerOrgId = (orgMember as unknown as { organization_id?: string })
+        ?.organization_id;
       if (!buyerOrgId) return { totalHeld: 0, count: 0 };
 
       const { data: escrowRecords } = await supabase

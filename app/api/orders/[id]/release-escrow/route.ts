@@ -61,9 +61,7 @@ export async function POST(
     }
 
     // Release all held escrows for this order
-    const escrowIds = escrows.map(
-      (e: { id: string }) => e.id
-    );
+    const escrowIds = escrows.map((e: { id: string }) => e.id);
 
     const { error: releaseError } = await supabase
       .from("escrow")

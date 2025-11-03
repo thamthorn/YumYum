@@ -798,9 +798,9 @@ export default function Results() {
                   {filtered.map((oem) => (
                     <Card
                       key={oem.oemOrgId}
-                      className="p-6 hover:shadow-lg transition-shadow"
+                      className="p-6 hover:shadow-lg transition-shadow flex flex-col h-full"
                     >
-                      <div className="space-y-4">
+                      <div className="space-y-4 flex-1">
                         <div>
                           <div className="flex items-start justify-between mb-2">
                             <h3 className="font-semibold text-lg">
@@ -940,7 +940,9 @@ export default function Results() {
                             ))}
                           </div>
                         )}
+                      </div>
 
+                      <div className="space-y-2 mt-auto pt-4">
                         <Button
                           onClick={() => handleViewProfile(oem)}
                           className="w-full"

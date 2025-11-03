@@ -150,7 +150,7 @@ export async function POST(request: Request) {
     const context = await createSupabaseRouteContext();
     const { supabase } = context;
     const body = await request.json();
-    const { matchId } = body;
+    const { matchId, requestId } = body;
 
     if (!matchId) {
       return NextResponse.json(
@@ -174,6 +174,24 @@ export async function POST(request: Request) {
         status: 500,
         cause: error,
       });
+    }
+
+    // If requestId is provided, update the request status to 'quote_received'
+    // (only if current status is 'submitted' or 'pending_oem')
+    if (requestId) {
+      const { error: requestError } = await supabase
+        .from("requests")
+        .update({ status: "quote_received" })
+        .eq("id", requestId)
+        .in("status", ["submitted", "pending_oem"]);
+
+      if (requestError) {
+        console.error(
+          "Failed to update request status to quote_received:",
+          requestError
+        );
+        // Don't fail the whole operation, just log the error
+      }
     }
 
     return NextResponse.json(

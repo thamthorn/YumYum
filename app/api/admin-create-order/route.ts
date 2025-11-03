@@ -121,6 +121,27 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Update request status to 'accepted' (only if current status is 'quote_received')
+    const { error: requestUpdateError } = await supabase
+      .from("requests")
+      .update({ status: "accepted" })
+      .eq("id", request_id)
+      .eq("status", "quote_received");
+
+    if (requestUpdateError) {
+      console.error("Failed to update request status:", requestUpdateError);
+      // Rollback: delete line items and order
+      await supabase
+        .from("order_line_items")
+        .delete()
+        .eq("order_id", orderData.id);
+      await supabase.from("orders").delete().eq("id", orderData.id);
+      return NextResponse.json(
+        { error: "Failed to update request status to accepted" },
+        { status: 500 }
+      );
+    }
+
     // Create order event
     const { error: eventError } = await supabase.from("order_events").insert({
       order_id: orderData.id,

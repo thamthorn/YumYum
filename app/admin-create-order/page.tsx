@@ -62,12 +62,13 @@ export default function AdminCreateOrderPage() {
   const { data: requests = [], isLoading } = useQuery<RequestResponse[]>({
     queryKey: ["admin-requests"],
     queryFn: async () => {
-      const response = await fetch("/api/requests");
+      const response = await fetch("/api/requests?status=quote_received");
       if (!response.ok) {
         throw new Error("Failed to load requests");
       }
       const body = await response.json();
-      return body.data ?? [];
+      const incoming: RequestResponse[] = body.data ?? [];
+      return incoming.filter((request) => request.status === "quote_received");
     },
   });
 

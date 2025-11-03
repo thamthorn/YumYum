@@ -254,6 +254,7 @@ export async function saveMatches(
       status: "new_match",
       score: match.score,
       source: criteria.source,
+      created_at: new Date().toISOString(), // Always set current timestamp
       digest: {
         reasons: match.reasons,
         buyerRequirements: {

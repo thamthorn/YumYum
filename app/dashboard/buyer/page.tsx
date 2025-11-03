@@ -699,6 +699,16 @@ function DashboardContent() {
                             <div className="grid md:grid-cols-2 gap-3">
                               <div>
                                 <span className="font-semibold text-foreground">
+                                  Request Type
+                                </span>
+                                <p>
+                                  {request.type === "prototype"
+                                    ? "Prototype / Sample Run"
+                                    : "Quote Request"}
+                                </p>
+                              </div>
+                              <div>
+                                <span className="font-semibold text-foreground">
                                   Quantity
                                 </span>
                                 <p>
@@ -751,7 +761,8 @@ function DashboardContent() {
               <TabsContent value="to-pay" className="space-y-4">
                 <div className="mb-6">
                   <p className="text-muted-foreground mb-4">
-                    Orders and quotes awaiting payment to start production.
+                    Orders and quotes awaiting payment to start production or
+                    continue shipment.
                   </p>
                 </div>
 
@@ -759,7 +770,9 @@ function DashboardContent() {
                   <Card className="p-6 text-center text-muted-foreground">
                     Loading...
                   </Card>
-                ) : orders.filter((o) => o.status === "signed").length === 0 &&
+                ) : orders.filter(
+                    (o) => o.status === "signed" || o.status === "manufacturing"
+                  ).length === 0 &&
                   requests.filter((r) => r.status === "quote_received")
                     .length === 0 ? (
                   <Card className="p-12 text-center text-muted-foreground">
@@ -771,7 +784,7 @@ function DashboardContent() {
                   </Card>
                 ) : (
                   <>
-                    {/* Show signed orders first */}
+                    {/* Show signed orders first (deposit payment) */}
                     {orders
                       .filter((order) => order.status === "signed")
                       .map((order) => (
@@ -847,7 +860,83 @@ function DashboardContent() {
                         </Card>
                       ))}
 
-                    {/* Then show quote_received requests */}
+                    {/* Then show manufacturing orders (balance payment) */}
+                    {orders
+                      .filter((order) => order.status === "manufacturing")
+                      .map((order) => (
+                        <Card
+                          key={order.id}
+                          className="p-6 hover:shadow-md transition-all border-primary/20"
+                        >
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-3 mb-2">
+                                <h3 className="text-lg font-semibold">
+                                  {order.order_line_items[0]?.description ??
+                                    "Order"}
+                                </h3>
+                                <Badge variant="verified">
+                                  <AlertCircle className="h-3 w-3 mr-1" />
+                                  Manufacturing - Balance Payment Due
+                                </Badge>
+                                <EscrowStatusBadge
+                                  status="held"
+                                  amount={order.total_value}
+                                  currency={order.currency}
+                                />
+                              </div>
+                              <div className="text-sm text-muted-foreground space-y-1">
+                                <div className="flex items-center gap-2">
+                                  <Building2 className="h-4 w-4" />
+                                  <span>
+                                    {order.oem_organization.display_name}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <Package className="h-4 w-4" />
+                                  <span>
+                                    {order.quantity_total} {order.unit}
+                                  </span>
+                                  <span>•</span>
+                                  <span className="font-semibold text-primary">
+                                    {order.total_value} {order.currency}
+                                  </span>
+                                </div>
+                              </div>
+                              <div className="flex gap-2 mt-4">
+                                <Button
+                                  size="sm"
+                                  className="cursor-pointer"
+                                  onClick={() =>
+                                    handleOpenPayment(order, "balance")
+                                  }
+                                >
+                                  <CreditCard className="h-4 w-4 mr-1" />
+                                  Pay Balance (70%)
+                                </Button>
+                                <Button size="sm" variant="outline" asChild>
+                                  <Link href={ROUTES.orderDetail(order.id)}>
+                                    <Eye className="h-4 w-4 mr-1" />
+                                    View Order
+                                  </Link>
+                                </Button>
+                                <Button size="sm" variant="outline" asChild>
+                                  <Link
+                                    href={ROUTES.messageThread(
+                                      order.request_id
+                                    )}
+                                  >
+                                    <MessageSquare className="h-4 w-4 mr-1" />
+                                    Message OEM
+                                  </Link>
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                        </Card>
+                      ))}
+
+                    {/* Finally show quote_received requests */}
                     {requests
                       .filter((r) => r.status === "quote_received")
                       .map((request) => (
@@ -914,7 +1003,6 @@ function DashboardContent() {
                 ) : orders.filter(
                     (order) =>
                       order.status === "preparation" ||
-                      order.status === "manufacturing" ||
                       order.status === "delivering"
                   ).length === 0 ? (
                   <Card className="p-12 text-center text-muted-foreground">
@@ -929,7 +1017,6 @@ function DashboardContent() {
                     .filter(
                       (order) =>
                         order.status === "preparation" ||
-                        order.status === "manufacturing" ||
                         order.status === "delivering"
                     )
                     .map((order) => (
@@ -946,19 +1033,15 @@ function DashboardContent() {
                               </h3>
                               <Badge
                                 variant={
-                                  order.status === "preparation" ||
-                                  order.status === "manufacturing"
+                                  order.status === "preparation"
                                     ? "default"
                                     : "secondary"
                                 }
                               >
-                                {order.status === "preparation" ||
-                                order.status === "manufacturing" ? (
+                                {order.status === "preparation" ? (
                                   <>
                                     <Package className="h-3 w-3 mr-1" />
-                                    {order.status === "preparation"
-                                      ? "Preparing"
-                                      : "Manufacturing"}
+                                    Preparing
                                   </>
                                 ) : (
                                   <>
@@ -992,18 +1075,6 @@ function DashboardContent() {
                               </div>
                             </div>
                             <div className="flex gap-2 mt-4">
-                              {/* Show Pay Balance button for manufacturing status */}
-                              {order.status === "manufacturing" && (
-                                <Button
-                                  size="sm"
-                                  onClick={() =>
-                                    handleOpenPayment(order, "balance")
-                                  }
-                                >
-                                  <CreditCard className="h-4 w-4 mr-1" />
-                                  Pay Balance
-                                </Button>
-                              )}
                               <Button size="sm" variant="outline" asChild>
                                 <Link href={ROUTES.orderDetail(order.id)}>
                                   <Eye className="h-4 w-4 mr-1" />

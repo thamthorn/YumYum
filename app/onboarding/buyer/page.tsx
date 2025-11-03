@@ -61,7 +61,7 @@ export default function BuyerOnboarding() {
     crossBorder: false,
   });
 
-  const totalSteps = aiSearch ? 1 : 2; // Only 2 steps for Quick Match, 1 for AI
+  const totalSteps = aiSearch ? 1 : 2; // Only 2 steps for Normal Matching, 1 for AI
   const progress = (step / totalSteps) * 100;
 
   const industries = useMemo(
@@ -175,7 +175,7 @@ export default function BuyerOnboarding() {
       return aiSearchQuery.trim().length >= 5;
     }
 
-    // Quick Match step 1: Company info + Industry + Product Type
+    // Normal Matching step 1: Company info + Industry + Product Type
     if (step === 1) {
       return (
         formData.companyName.trim().length > 0 &&
@@ -184,7 +184,7 @@ export default function BuyerOnboarding() {
       );
     }
 
-    // Quick Match step 2: Timeline
+    // Normal Matching step 2: Timeline
     if (step === 2) {
       return formData.timeline.trim().length > 0;
     }
@@ -228,7 +228,7 @@ export default function BuyerOnboarding() {
         return;
       }
 
-      // Handle Quick Match onboarding
+      // Handle Normal Matching onboarding
       const response = await fetch("/api/onboarding/buyer", {
         method: "POST",
         headers: {
@@ -305,7 +305,7 @@ export default function BuyerOnboarding() {
   const handleQuickMatch = () => {
     setQuickMatch(true);
     setAiSearch(false);
-    toast.success("Quick Match activated! Just 2 quick questions.", {
+    toast.success("Normal Matching activated! Just 2 quick questions.", {
       icon: <Zap className="h-4 w-4" />,
     });
   };
@@ -346,7 +346,7 @@ export default function BuyerOnboarding() {
                   {aiSearch
                     ? "AI Search - Let AI find your perfect match"
                     : quickMatch
-                      ? "Quick Match - Get instant suggestions"
+                      ? "Normal Matching - Get instant suggestions"
                       : "Tell us about your manufacturing needs"}
                 </p>
               </div>
@@ -377,15 +377,15 @@ export default function BuyerOnboarding() {
                             <Zap className="h-5 w-5 text-primary" />
                           </div>
                           <div>
-                            <h3 className="font-semibold">Quick Match</h3>
+                            <h3 className="font-semibold">Normal Matching</h3>
                             <Badge variant="secondary" className="text-xs">
                               ~2 min
                             </Badge>
                           </div>
                         </div>
                         <p className="text-sm text-muted-foreground">
-                          Minimum input, instant suggestions. Perfect for
-                          exploration.
+                          Simple setup with key preferences. Quick and efficient
+                          matching.
                         </p>
                       </Card>
 

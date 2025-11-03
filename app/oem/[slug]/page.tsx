@@ -329,12 +329,14 @@ export default async function OEMProfile({
                 <Button size="lg" asChild>
                   <Link href={requestQuoteHref}>{COPY.ctas.requestQuote}</Link>
                 </Button>
-                <Button variant="outline" asChild>
-                  <Link href={requestPrototypeHref}>
-                    <Rocket className="mr-2 h-4 w-4" />
-                    {COPY.ctas.requestPrototype}
-                  </Link>
-                </Button>
+                {profile.prototype_support && (
+                  <Button variant="outline" asChild>
+                    <Link href={requestPrototypeHref}>
+                      <Rocket className="mr-2 h-4 w-4" />
+                      {COPY.ctas.requestPrototype}
+                    </Link>
+                  </Button>
+                )}
                 {session && (
                   <>
                     <Button variant="outline" asChild>

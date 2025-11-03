@@ -178,7 +178,7 @@ export default function Results() {
       }
     }
 
-    // Load user preferences from onboarding (only for quick match)
+    // Load user preferences from onboarding (only for normal matching)
     const preferences = sessionStorage.getItem("userPreferences");
     if (preferences) {
       try {
@@ -641,7 +641,7 @@ export default function Results() {
                     </Select>
                   </div>
 
-                  {/* Lead Time Filter - Only show for AI search or regular browse, not for quick match */}
+                  {/* Lead Time Filter - Only show for AI search or regular browse, not for normal matching */}
                   {!userPreferences?.quickMatch && (
                     <div className="space-y-2">
                       <Label>Lead Time (Days)</Label>
@@ -763,7 +763,7 @@ export default function Results() {
                       setSelectedTags([]);
                       setSelectedLocation("any");
                       // Don't reset moqRange - it comes from onboarding
-                      // Only reset leadTimeRange if not in quick match mode
+                      // Only reset leadTimeRange if not in normal matching mode
                       if (!userPreferences?.quickMatch) {
                         setLeadTimeRange([1, 90]);
                       }

@@ -75,7 +75,7 @@ export default function Home() {
                 </div>
                 <div className="flex items-center gap-2">
                   <Clock className="h-4 w-4 text-primary" />
-                  <span>Quick Match in 2 min</span>
+                  <span>Normal Matching in 2 min</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Globe className="h-4 w-4 text-info" />
@@ -222,7 +222,7 @@ export default function Home() {
               },
               {
                 icon: Zap,
-                title: "Quick Match",
+                title: "Normal Matching",
                 description:
                   "Get instant OEM suggestions with minimal input. Perfect for fast-moving projects.",
               },

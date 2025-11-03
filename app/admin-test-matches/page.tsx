@@ -70,11 +70,11 @@ export default function AdminTestMatchesPage() {
 
   // Approve match mutation
   const approveMutation = useMutation({
-    mutationFn: async (matchId: string) => {
+    mutationFn: async (payload: { matchId: string; requestId?: string }) => {
       const response = await fetch("/api/admin-test-matches", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ matchId }),
+        body: JSON.stringify(payload),
       });
       if (!response.ok) {
         throw new Error("Failed to approve match");
@@ -95,9 +95,9 @@ export default function AdminTestMatchesPage() {
     },
   });
 
-  const handleApprove = (matchId: string) => {
+  const handleApprove = (matchId: string, requestId?: string | null) => {
     setApprovingId(matchId);
-    approveMutation.mutate(matchId);
+    approveMutation.mutate({ matchId, requestId: requestId ?? undefined });
   };
 
   // Decline match mutation
@@ -372,7 +372,7 @@ export default function AdminTestMatchesPage() {
                   {match.status === "new_match" && (
                     <div className="ml-4 flex flex-col gap-2">
                       <Button
-                        onClick={() => handleApprove(match.id)}
+                        onClick={() => handleApprove(match.id, match.request?.id)}
                         disabled={
                           approvingId === match.id || decliningId === match.id
                         }

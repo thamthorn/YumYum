@@ -121,6 +121,34 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const requestUpdateTimestamp = new Date().toISOString();
+    const { data: updatedRequests, error: requestUpdateError } = await supabase
+      .from("requests")
+      .update({
+        status: "accepted",
+        updated_at: requestUpdateTimestamp,
+        updated_by: userId ?? null,
+      })
+      .eq("id", request_id)
+      .eq("status", "quote_received")
+      .select("id");
+
+    if (requestUpdateError) {
+      console.error("Error updating request status:", requestUpdateError);
+      await supabase.from("orders").delete().eq("id", orderData.id);
+      return NextResponse.json(
+        { error: "Failed to update request status" },
+        { status: 500 }
+      );
+    }
+
+    if (!updatedRequests || updatedRequests.length === 0) {
+      console.warn("Request status update skipped", {
+        requestId: request_id,
+        match: "status_not_quote_received",
+      });
+    }
+
     // Create order event
     const { error: eventError } = await supabase.from("order_events").insert({
       order_id: orderData.id,

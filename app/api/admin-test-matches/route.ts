@@ -148,9 +148,12 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const context = await createSupabaseRouteContext();
-    const { supabase } = context;
+    const { supabase, userId } = context;
     const body = await request.json();
-    const { matchId } = body;
+    const { matchId, requestId: requestIdFromBody } = body as {
+      matchId?: string;
+      requestId?: string;
+    };
 
     if (!matchId) {
       return NextResponse.json(
@@ -159,11 +162,36 @@ export async function POST(request: Request) {
       );
     }
 
+    // Load match so we can link back to the originating request (if any)
+    const { data: matchRecord, error: matchFetchError } = await supabase
+      .from("matches")
+      .select("id, digest")
+      .eq("id", matchId)
+      .single();
+
+    if (matchFetchError || !matchRecord) {
+      throw new AppError("Failed to locate match", {
+        status: 404,
+        cause: matchFetchError ?? undefined,
+      });
+    }
+
+    const digest = (matchRecord.digest ?? {}) as Record<string, unknown>;
+    const requestId =
+      requestIdFromBody && typeof requestIdFromBody === "string"
+        ? requestIdFromBody
+        : typeof digest.requestId === "string"
+          ? digest.requestId
+          : typeof digest.request_id === "string"
+            ? digest.request_id
+            : null;
+
     // Update match status to 'contacted'
     const { data, error } = await supabase
       .from("matches")
       .update({
         status: "contacted",
+        updated_at: new Date().toISOString(),
       })
       .eq("id", matchId)
       .select()
@@ -174,6 +202,26 @@ export async function POST(request: Request) {
         status: 500,
         cause: error,
       });
+    }
+
+    if (requestId) {
+      const { error: requestUpdateError } = await supabase
+        .from("requests")
+        .update({
+          status: "quote_received",
+          updated_at: new Date().toISOString(),
+          updated_by: userId ?? null,
+        })
+        .eq("id", requestId)
+        .in("status", ["submitted", "pending_oem"]);
+
+      if (requestUpdateError) {
+        console.warn("Warning: failed to update request status", {
+          matchId,
+          requestId,
+          error: requestUpdateError,
+        });
+      }
     }
 
     return NextResponse.json(

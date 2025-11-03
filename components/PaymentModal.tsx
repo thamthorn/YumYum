@@ -90,8 +90,8 @@ export function PaymentModal({
     setIsProcessing(true);
 
     try {
-      // Call API to update order payment status
-      const response = await fetch(`/api/orders/${orderId}/payment`, {
+      // Call mock payment endpoint (creates real database records)
+      const response = await fetch(`/api/orders/${orderId}/mock-payment`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -107,22 +107,25 @@ export function PaymentModal({
 
       if (!response.ok) {
         const error = await response.json().catch(() => null);
-        throw new Error(error?.message || "การชำระเงินล้มเหลว");
+        throw new Error(error?.error?.message || "การชำระเงินล้มเหลว");
       }
 
+      const result = await response.json();
+      const { payment, escrow, order: orderUpdate } = result.data;
+
       // Show success toast
-      if (useEscrow) {
+      if (escrow) {
         const percentage = paymentType === "deposit" ? "30%" : "70%";
         toast.success(
-          `ยอดเงิน ${percentage} (${formatCurrency(paymentAmount)}) จะถูกพักไว้ในระบบ Escrow จนกว่าคุณจะยืนยันการรับสินค้า`,
+          `ยอดเงิน ${percentage} (${formatCurrency(payment.amount)}) จะถูกพักไว้ในระบบ Escrow จนกว่าคุณจะยืนยันการรับสินค้า`,
           {
-            description: "เงินของคุณได้รับการปกป้องอย่างปลอดภัย",
+            description: `เงินของคุณได้รับการปกป้องอย่างปลอดภัย | Order status: ${orderUpdate.newStatus}`,
             duration: 5000,
           }
         );
       } else {
-        toast.success(`ชำระเงินสำเร็จ ${formatCurrency(paymentAmount)}`, {
-          description: "เงินจะถูกโอนให้ OEM ทันที",
+        toast.success(`ชำระเงินสำเร็จ ${formatCurrency(payment.amount)}`, {
+          description: `เงินจะถูกโอนให้ OEM ทันที | Order status: ${orderUpdate.newStatus}`,
         });
       }
 

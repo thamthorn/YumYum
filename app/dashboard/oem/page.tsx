@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import Link from "next/link";
 import Navigation from "@/components/Navigation";
 import ProtectedClient from "@/components/ProtectedClient";
+import { OEMFinancialStats } from "@/components/OEMFinancialStats";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -85,6 +86,9 @@ export default function OEMDashboard() {
                   </Link>
                 </Button>
               </div>
+
+              {/* Financial Overview */}
+              <OEMFinancialStats />
 
               {/* Profile Completion */}
               {profileCompletion < 100 && (

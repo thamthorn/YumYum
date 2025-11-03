@@ -355,23 +355,48 @@ function DashboardContent() {
     toast.error(requestError.message);
   }
 
-  // Calculate total held in escrow (mock - should come from order payment status in real app)
-  const totalHeldInEscrow = orders
-    .filter(
-      (order) =>
-        order.status !== "cancelled" &&
-        order.status !== "completed" &&
-        order.status !== "delivered"
-    )
-    .reduce((sum, order) => sum + order.total_value, 0);
+  // Fetch actual escrow data from database
+  const { data: escrowData } = useQuery({
+    queryKey: ["buyer-escrow"],
+    queryFn: async () => {
+      if (!session?.user?.id) return { totalHeld: 0, count: 0 };
 
-  // Count orders with escrow protection
-  const escrowProtectedOrders = orders.filter(
-    (order) =>
-      order.status !== "cancelled" &&
-      order.status !== "completed" &&
-      order.status !== "delivered"
-  ).length;
+      // Get buyer's organization ID first
+      const { data: orgMember } = await supabase
+        .from("organization_members")
+        .select("organization_id")
+        .eq("profile_id", session.user.id)
+        .single();
+
+      const buyerOrgId =
+        (orgMember as unknown as { organization_id?: string })
+          ?.organization_id;
+      if (!buyerOrgId) return { totalHeld: 0, count: 0 };
+
+      const { data: escrowRecords } = await supabase
+        .from("escrow")
+        .select("amount, status")
+        .eq("buyer_org_id", buyerOrgId)
+        .eq("status", "held");
+
+      const totalHeld = escrowRecords
+        ? escrowRecords.reduce(
+            (sum: number, record: { amount: number }) => sum + record.amount,
+            0
+          )
+        : 0;
+
+      return {
+        totalHeld,
+        count: escrowRecords?.length || 0,
+      };
+    },
+    enabled: !!session?.user,
+  });
+
+  // Use actual escrow data from database
+  const totalHeldInEscrow = escrowData?.totalHeld || 0;
+  const escrowProtectedOrders = escrowData?.count || 0;
 
   // Handle opening payment modal
   const handleOpenPayment = (

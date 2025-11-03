@@ -213,7 +213,7 @@ function OrderClient({ params }: { params: Promise<{ id: string }> }) {
 
   const handleConfirmDelivery = async () => {
     try {
-      // Call API to update order status to completed
+      // Call API to update order status to completed and release escrow
       const response = await fetch(`/api/orders/${id}/complete`, {
         method: "POST",
       });
@@ -222,10 +222,14 @@ function OrderClient({ params }: { params: Promise<{ id: string }> }) {
         throw new Error("Failed to confirm delivery");
       }
 
+      const result = await response.json();
+
       // Show success toast
       toast({
         title: "เงินถูกโอนให้ OEM แล้ว",
-        description: `ยอดเงิน ${formatCurrency(calculatePayment(total).totalToOEM, currency)} ถูกโอนให้ OEM (หักค่าบริการ 5%)`,
+        description:
+          result.message ||
+          `ยอดเงิน ${formatCurrency(calculatePayment(total).totalToOEM, currency)} ถูกโอนให้ OEM (หักค่าบริการ 5%)`,
       });
 
       // Refresh order data

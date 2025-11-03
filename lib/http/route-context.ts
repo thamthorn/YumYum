@@ -60,10 +60,11 @@ const fetchProfileRole = async (
 
 export interface SupabaseRouteContext {
   supabase: RouteSupabaseClient;
-  session: Session;
+  session: Session | null;
   authorizer: Authorizer;
   role: AccountRole;
   userId: string; // Authenticated user ID from getUser()
+  user: Session["user"]; // Authenticated user object
 }
 
 export const createSupabaseRouteContext =
@@ -88,14 +89,11 @@ export const createSupabaseRouteContext =
       throw new AuthError();
     }
 
-    // Get session for compatibility (but user is already authenticated above)
+    // Get session for compatibility (only for access_token, etc.)
+    // Don't use session.user - use the authenticated user from getUser() above
     const {
       data: { session },
     } = await supabase.auth.getSession();
-
-    if (!session) {
-      throw new AuthError();
-    }
 
     const profileId = user.id;
     const [role, memberships] = await Promise.all([
@@ -111,9 +109,10 @@ export const createSupabaseRouteContext =
 
     return {
       supabase,
-      session,
+      session, // For access tokens and metadata, but don't use session.user
       authorizer,
       role,
       userId: profileId, // Use the authenticated user ID from getUser()
+      user, // Use the authenticated user object from getUser()
     };
   };

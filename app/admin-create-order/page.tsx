@@ -58,13 +58,13 @@ export default function AdminCreateOrderPage() {
   ]);
   const [orderStatus, setOrderStatus] = useState("signed");
 
-  // Fetch all requests
+  // Fetch only approved requests (those with at least one approved match)
   const { data: requests = [], isLoading } = useQuery<RequestResponse[]>({
-    queryKey: ["admin-requests"],
+    queryKey: ["admin-approved-requests"],
     queryFn: async () => {
-      const response = await fetch("/api/requests");
+      const response = await fetch("/api/admin-create-order/requests");
       if (!response.ok) {
-        throw new Error("Failed to load requests");
+        throw new Error("Failed to load approved requests");
       }
       const body = await response.json();
       return body.data ?? [];
@@ -94,7 +94,7 @@ export default function AdminCreateOrderPage() {
     onSuccess: (data) => {
       toast.success("Order created successfully!");
       queryClient.invalidateQueries({ queryKey: ["buyer-orders"] });
-      queryClient.invalidateQueries({ queryKey: ["admin-requests"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-approved-requests"] });
 
       // Navigate to the created order
       if (data.order?.id) {
@@ -167,15 +167,25 @@ export default function AdminCreateOrderPage() {
                 🔧 Admin: Create Order from Request
               </h1>
               <p className="text-muted-foreground">
-                Hidden testing route - Create orders from existing requests
+                Hidden testing route - Create orders from approved requests only
+              </p>
+              <p className="text-sm text-muted-foreground mt-1">
+                💡 Requests appear here only after their match is approved in /admin-test-matches
               </p>
             </div>
 
             {/* Select Request */}
             <Card className="p-6 mb-6">
-              <h2 className="text-xl font-semibold mb-4">1. Select Request</h2>
+              <h2 className="text-xl font-semibold mb-4">1. Select Approved Request</h2>
               {isLoading ? (
-                <p className="text-muted-foreground">Loading requests...</p>
+                <p className="text-muted-foreground">Loading approved requests...</p>
+              ) : requests.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <p className="mb-2">No approved requests available</p>
+                  <p className="text-sm">
+                    Approve matches in /admin-test-matches first
+                  </p>
+                </div>
               ) : (
                 <div className="space-y-4">
                   <div className="space-y-2">

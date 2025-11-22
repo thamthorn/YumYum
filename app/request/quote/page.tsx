@@ -272,12 +272,6 @@ function RequestForm() {
     if (step === 4) {
       return formData.timeline.trim().length > 0;
     }
-    if (step === 5) {
-      return (
-        formData.shipping.trim().length > 0 &&
-        formData.payment.trim().length > 0
-      );
-    }
     return true;
   };
 

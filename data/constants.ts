@@ -3,6 +3,7 @@ import type { Industry, NavConfig, OrderStage } from "./types";
 export const ROUTES = {
   home: "/",
   login: "/login",
+  register: "/register",
   buyerDashboard: "/dashboard/buyer",
   oemDashboard: "/dashboard/oem",
   messages: "/messages",
@@ -25,7 +26,7 @@ export const NAV: NavConfig = {
     { label: "List of OEMs", href: ROUTES.oems },
   ],
   loggedIn: [
-    { label: "Dashboard", href: ROUTES.buyerDashboard },
+    { label: "Dashboard", href: "/dashboard" }, // Will redirect based on user type
     { label: "Messages", href: ROUTES.messages },
     { label: "List of OEMs", href: ROUTES.oems },
   ],
@@ -48,11 +49,63 @@ export const DASHBOARD_STATS = [
 ];
 
 export const ORDER_STEPS: OrderStage[] = [
-  "Signed",
-  "Preparation",
-  "Manufacturing",
-  "Delivering",
+  "Draft",
+  "Payment",
+  "Production",
+  "Shipping",
+  "Completed",
 ];
+
+export const PRODUCT_CATEGORIES = [
+  {
+    slug: "condiments",
+    label: "Condiments",
+    icon: "Package",
+    image: "/categories/condiments.jpg",
+  },
+  {
+    slug: "skincare",
+    label: "Skincare",
+    icon: "Sparkles",
+    image: "/categories/skincare.jpg",
+  },
+  {
+    slug: "shipping-packaging",
+    label: "Shipping Packaging",
+    icon: "Package",
+    image: "/categories/shipping-packaging.jpg",
+  },
+  {
+    slug: "beverages",
+    label: "Beverages",
+    icon: "Coffee",
+    image: "/categories/beverages.jpg",
+  },
+  {
+    slug: "snacks",
+    label: "Snacks",
+    icon: "Package",
+    image: "/categories/snacks.jpg",
+  },
+  {
+    slug: "food-packaging",
+    label: "Food Packaging",
+    icon: "Package",
+    image: "/categories/food-packaging.jpg",
+  },
+  {
+    slug: "apparel",
+    label: "Apparel",
+    icon: "Shirt",
+    image: "/categories/apparel.jpg",
+  },
+  {
+    slug: "home-decor",
+    label: "Home Decor",
+    icon: "Home",
+    image: "/categories/home-decor.jpg",
+  },
+] as const;
 
 export const COPY = {
   toasts: {

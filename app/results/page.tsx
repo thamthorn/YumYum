@@ -464,7 +464,7 @@ export default function Results() {
         tags: displayTags,
       };
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // ...existing code...
   }, [cards, moqRange, leadTimeRange, selectedLocation]);
 
   const filtered = useMemo(() => {

@@ -77,12 +77,6 @@ export default function BuyerOnboarding() {
     []
   );
 
-  // Unused - kept for future implementation
-  // const certifications = [
-  //   "ISO 9001:2015",
-  //   "ISO 9001",
-  //   "GMP",
-  //   "OEKO-TEX",
   //   "Organic",
   //   "ISO 22000",
   //   "HACCP",
@@ -159,7 +153,7 @@ export default function BuyerOnboarding() {
       updateFormData("productType", "");
     }
     setProductTypeSearch("");
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // ...existing code...
   }, [formData.industry]);
 
   const updateFormData = (

@@ -36,36 +36,32 @@ export async function GET(request: Request) {
     // Filter products by price range if provided
     let filteredProducts = products || [];
     if (minPrice || maxPrice) {
-      filteredProducts = filteredProducts.filter(
-        (product: {
-          product_pricing: Array<{ unit_price: string | number }>;
-          category?: string;
-        }) => {
-          const pricing = product.product_pricing;
-          if (!pricing || pricing.length === 0) return false;
+      filteredProducts = filteredProducts.filter((product: any) => {
+        // product typing is inferred from the Supabase query; avoid repeating a stricter inline type
+        const pricing = product.product_pricing;
+        if (!pricing || pricing.length === 0) return false;
 
-          // Get the minimum price from all pricing tiers
-          const productMinPrice = Math.min(
-            ...pricing.map((p: { unit_price: string | number }) =>
-              Number(p.unit_price)
-            )
-          );
+        // Get the minimum price from all pricing tiers
+        const productMinPrice = Math.min(
+          ...pricing.map((p: { unit_price: string | number }) =>
+            Number(p.unit_price)
+          )
+        );
 
-          // Check if product's minimum price falls within the range
-          if (minPrice && productMinPrice < Number(minPrice)) return false;
-          if (maxPrice && productMinPrice > Number(maxPrice)) return false;
+        // Check if product's minimum price falls within the range
+        if (minPrice && productMinPrice < Number(minPrice)) return false;
+        if (maxPrice && productMinPrice > Number(maxPrice)) return false;
 
-          return true;
-        }
-      );
+        return true;
+      });
     }
 
     // Extract unique categories and sort alphabetically
     const uniqueCategories = Array.from(
       new Set(
         filteredProducts
-          ?.map((p: { category?: string }) => p.category)
-          .filter((cat): cat is string => Boolean(cat))
+          ?.map((p: any) => p.category)
+          .filter((cat: any): cat is string => typeof cat === "string" && cat.length > 0)
       )
     ).sort();
 

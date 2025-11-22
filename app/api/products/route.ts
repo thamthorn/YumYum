@@ -61,7 +61,7 @@ export async function GET(request: Request) {
         }>;
         [key: string]: unknown;
       }>
-    )?.map((product) => {
+    )?.map((product: any) => {
       const pricing = Array.isArray(product.product_pricing)
         ? [...product.product_pricing].sort(
             (a, b) => a.min_quantity - b.min_quantity

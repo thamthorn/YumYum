@@ -127,7 +127,13 @@ export type OrderStage =
   | "Signed"
   | "Preparation"
   | "Manufacturing"
-  | "Delivering";
+  | "Delivering"
+  // additional stages used elsewhere in the app (order flow / constants)
+  | "Draft"
+  | "Payment"
+  | "Production"
+  | "Shipping"
+  | "Completed";
 
 export interface OrderItem {
   sku?: string;

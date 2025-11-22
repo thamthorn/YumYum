@@ -1,115 +1,113 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
-import type { Metadata } from "next";
 import Navigation from "@/components/Navigation";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle2, Zap, Shield, Star } from "lucide-react";
-
-export const metadata: Metadata = {
-  title: "Pricing Plans | YUMYUM",
-  description:
-    "Choose the perfect plan for your manufacturing needs. Start free and upgrade as you grow. Compare our Free, Pro, and Partner plans.",
-  openGraph: {
-    title: "Pricing Plans | YUMYUM",
-    description:
-      "Choose the perfect plan for your manufacturing needs. Start free and upgrade as you grow.",
-  },
-};
+import { CheckCircle2, Loader2 } from "lucide-react";
+import { useSupabase } from "@/lib/supabase/session-context";
+import { toast } from "sonner";
 
 export default function Pricing() {
-  const plans = [
-    {
-      name: "Free",
-      icon: Zap,
-      price: "$0",
-      period: "forever",
-      description: "Perfect for exploring and discovering OEMs",
-      features: [
-        "Browse all verified OEMs",
-        "Basic filtering and search",
-        "Request quotes",
-        "Direct messaging",
-        "Compare up to 3 OEMs",
-      ],
-      cta: "Start Free",
-      href: "/onboarding/buyer",
-      popular: false,
+  const router = useRouter();
+  const { session } = useSupabase();
+  const [subscribing, setSubscribing] = useState<string | null>(null);
+
+  // Get current subscription
+  const { data: subscriptionData } = useQuery({
+    queryKey: ["oem-subscription"],
+    queryFn: async () => {
+      if (!session) return null;
+      const response = await fetch("/api/oem/subscription");
+      if (!response.ok) return null;
+      return response.json();
     },
-    {
-      name: "Pro",
-      icon: Shield,
-      price: "$49",
-      period: "per month",
-      description: "For serious buyers with regular manufacturing needs",
-      features: [
-        "Everything in Free",
-        "Advanced filters & search",
-        "Unlimited comparisons",
-        "Priority support",
-        "Request prototype marking",
-        "Group order coordination",
-        "Analytics dashboard",
-      ],
-      cta: "Start Pro Trial",
-      href: "/onboarding/buyer",
-      popular: true,
-    },
-    {
-      name: "Partner",
-      icon: Star,
-      price: "$199",
-      period: "per month",
-      description: "Complete manufacturing partnership with premium services",
-      features: [
-        "Everything in Pro",
-        "Dedicated liaison service",
-        "Escrow payment protection",
-        "Quality audit services",
-        "Factory visit coordination",
-        "Legal document support",
-        "Preferred OEM access",
-        "Custom matching algorithm",
-      ],
-      cta: "Contact Sales",
-      href: "#",
-      popular: false,
-    },
-  ];
+    enabled: !!session,
+  });
+
+  const currentTier = subscriptionData?.subscription?.tier || "FREE";
+  // Plans have been removed as they are unused.
 
   const oemFeatures = [
     {
-      tier: "Free",
-      price: "$0",
+      tier: "FREE",
+      tierName: "Free",
+      price: "฿0",
+      features: ["Basic listing", "Product catalog", "Accept quote requests"],
+    },
+    {
+      tier: "INSIGHTS",
+      tierName: "Insights",
+      price: "฿2,999/mo",
       features: [
-        "Basic profile listing",
-        "Up to 5 photos",
-        "Accept quote requests",
+        "Premium insights (basic analytics)",
+        "Profile views (monthly summary)",
+        "Keyword traffic (top 10)",
+        "Trend report (category-level)",
+        "Competitor overview (max 3)",
+        "Basic CSV export",
       ],
     },
     {
-      tier: "Pro",
-      price: "$99/mo",
+      tier: "VERIFIED_PARTNER",
+      tierName: "Verified Partner",
+      price: "฿9,999/mo",
       features: [
-        "Featured placement",
-        "Unlimited photos & videos",
-        "Analytics dashboard",
-        "Priority in search",
-        "Verified badge",
-      ],
-    },
-    {
-      tier: "Partner",
-      price: "$299/mo",
-      features: [
-        "Trusted Partner badge",
-        "Dedicated account manager",
-        "Lead generation support",
-        "Premium support",
-        "Marketing assistance",
+        "Verified OEM badge",
+        "Insights Pro (detailed analytics)",
+        "Factory inspection & compliance check",
+        "Factory Tour Video upload",
+        "QC Process Video upload",
+        "Rank boost in search results",
+        "Export data (PDF/CSV)",
       ],
     },
   ];
+
+  const handleSubscribe = async (tier: string) => {
+    if (!session) {
+      toast.error("Please login to subscribe");
+      router.push(`/login?next=/pricing`);
+      return;
+    }
+
+    setSubscribing(tier);
+
+    try {
+      const response = await fetch("/api/oem/subscription", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ tier }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to subscribe");
+      }
+
+      toast.success(
+        `Successfully subscribed to ${oemFeatures.find((t) => t.tier === tier)?.tierName || tier}!`
+      );
+
+      // Redirect to dashboard after a short delay and force refresh
+      setTimeout(() => {
+        router.push("/dashboard/oem?refresh=true");
+        router.refresh();
+      }, 1500);
+    } catch (error: any) {
+      console.error("Subscription error:", error);
+      toast.error(error.message || "Failed to subscribe. Please try again.");
+    } finally {
+      setSubscribing(null);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -130,7 +128,7 @@ export default function Pricing() {
           </div>
 
           {/* Buyer Plans */}
-          <div className="mb-20">
+          {/* <div className="mb-20">
             <h2 className="text-3xl font-bold text-center mb-12">
               For Buyers & Brands
             </h2>
@@ -184,7 +182,7 @@ export default function Pricing() {
                 </Card>
               ))}
             </div>
-          </div>
+          </div> */}
 
           {/* OEM Plans */}
           <div className="mb-20">
@@ -196,13 +194,30 @@ export default function Pricing() {
               and features you need.
             </p>
 
-            <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+            <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
               {oemFeatures.map((tier) => (
-                <Card key={tier.tier} className="p-6 animate-scale-in">
-                  <h3 className="text-xl font-bold mb-2">{tier.tier}</h3>
-                  <div className="text-3xl font-bold text-primary mb-6">
+                <Card
+                  key={tier.tier}
+                  className={`p-6 animate-scale-in ${tier.tierName === "Verified Partner" ? "border-2 border-primary shadow-xl relative" : ""}`}
+                >
+                  {tier.tierName === "Verified Partner" && (
+                    <Badge className="absolute -top-3 left-1/2 -translate-x-1/2">
+                      Recommended
+                    </Badge>
+                  )}
+                  <h3 className="text-xl font-bold mb-2">{tier.tierName}</h3>
+                  <div className="text-3xl font-bold text-primary mb-1">
                     {tier.price}
                   </div>
+                  {tier.tierName === "Verified Partner" && (
+                    <div className="text-xs text-muted-foreground mb-6">
+                      + inspection fee
+                    </div>
+                  )}
+                  {tier.tierName !== "Verified Partner" && (
+                    <div className="mb-6 h-4"></div>
+                  )}
+
                   <div className="space-y-3">
                     {tier.features.map((feature) => (
                       <div key={feature} className="flex items-start gap-2">
@@ -211,8 +226,26 @@ export default function Pricing() {
                       </div>
                     ))}
                   </div>
-                  <Button variant="outline" className="w-full mt-6" asChild>
-                    <Link href="/dashboard/oem">Get Started</Link>
+                  <Button
+                    variant={
+                      tier.tierName === "Verified Partner"
+                        ? "default"
+                        : "outline"
+                    }
+                    className="w-full mt-6"
+                    onClick={() => handleSubscribe(tier.tier)}
+                    disabled={subscribing !== null || currentTier === tier.tier}
+                  >
+                    {subscribing === tier.tier ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Subscribing...
+                      </>
+                    ) : currentTier === tier.tier ? (
+                      "Current Plan"
+                    ) : (
+                      "Subscribe Now"
+                    )}
                   </Button>
                 </Card>
               ))}

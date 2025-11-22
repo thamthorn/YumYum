@@ -71,13 +71,6 @@ type RequestResponse = {
   } | null;
 };
 
-// Unused - kept for future implementation
-// type MatchResponse = {
-//   id: string;
-//   status: string;
-//   score: number | null;
-//   digest: Record<string, unknown> | null; // JSON from database
-//   createdAt: string | null;
 //   updatedAt: string | null;
 //   oem: {
 //     organizationId: string;
@@ -125,6 +118,23 @@ type OrderResponse = {
   }>;
 };
 
+export default function BuyerDashboard() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-background flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Loading dashboard...</p>
+          </div>
+        </div>
+      }
+    >
+      <DashboardContent />
+    </Suspense>
+  );
+}
+
 function DashboardContent() {
   const { session, supabase } = useSupabase();
   const queryClient = useQueryClient();
@@ -164,17 +174,6 @@ function DashboardContent() {
 
   // Unused - kept for future implementation
   // const { data: matches = [], error: matchesError } = useQuery<MatchResponse[]>(
-  //   {
-  //     queryKey: ["buyer-matches"],
-  //     queryFn: async () => {
-  //       const response = await fetch("/api/matches");
-  //       if (!response.ok) {
-  //         const body = await response.json().catch(() => null);
-  //         throw new Error(body?.error?.message ?? "Unable to load matches");
-  //       }
-  //       const body = (await response.json()) as { data: MatchResponse[] };
-  //       return body.data ?? [];
-  //     },
   //     enabled: Boolean(session),
   //     refetchInterval: 2000, // Auto-refetch every 2 seconds (faster updates)
   //     refetchOnWindowFocus: true, // Refetch when window regains focus
@@ -320,17 +319,6 @@ function DashboardContent() {
   //     const response = await fetch("/api/matches", {
   //       method: "DELETE",
   //     });
-  //     if (!response.ok) {
-  //       const body = await response.json().catch(() => null);
-  //       throw new Error(body?.error?.message ?? "Failed to clear matches");
-  //     }
-  //     return response.json();
-  //   },
-  //   onSuccess: () => {
-  //     queryClient.invalidateQueries({ queryKey: ["buyer-matches"] });
-  //     toast.success("All matches cleared successfully");
-  //   },
-  //   onError: (error: Error) => {
   //     toast.error(error.message);
   //   },
   // });
@@ -372,9 +360,10 @@ function DashboardContent() {
         ?.organization_id;
       if (!buyerOrgId) return { totalHeld: 0, count: 0 };
 
-      const { data: escrowRecords } = await supabase
+      // Optimized query: only fetch amount for summing
+      const { data: escrowRecords, count } = await supabase
         .from("escrow")
-        .select("amount, status")
+        .select("amount", { count: "exact" })
         .eq("buyer_org_id", buyerOrgId)
         .eq("status", "held");
 
@@ -387,7 +376,7 @@ function DashboardContent() {
 
       return {
         totalHeld,
-        count: escrowRecords?.length || 0,
+        count: count || 0,
       };
     },
     enabled: !!session?.user,
@@ -1307,10 +1296,4 @@ function DashboardContent() {
   );
 }
 
-export default function BuyerDashboard() {
-  return (
-    <Suspense fallback={<div className="min-h-screen bg-background" />}>
-      <DashboardContent />
-    </Suspense>
-  );
-}
+

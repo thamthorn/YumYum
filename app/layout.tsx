@@ -15,8 +15,39 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "YUMYUM",
-  description: "YUMYUM OEM matching platform",
+  // 1. Title: PURE KEYWORDS. No brand name.
+  // This tells Google: "This site IS the directory."
+  title: {
+    default: "Find OEM Manufacturers Thailand | Food, Beauty & Wellness Factory List",
+    template: "%s | Thailand OEM Directory", // Internal pages will look like "About Us | Thailand OEM Directory"
+  },
+
+  // 2. Description: Focus on the RESULT, not the platform name.
+  description:
+    "Search verified Thai OEM factories for Food, Supplements, and Cosmetics. Filter by Low MOQ, GMP/HACCP standards, and price. Connect directly with manufacturers.",
+
+  // 3. Keywords: Remove "Yum2", keep the high-traffic terms.
+  keywords: [
+    // High Volume English
+    "OEM Thailand",
+    "Find OEM",
+    "OEM Matching",
+    "Contract Manufacturing",
+    "Start a food business",
+    "Paiboon Products",
+    "YumYum",
+    "Thailand Factory Directory",
+    "Food Manufacturer List",
+    "Supplement OEM Low MOQ",
+    "Cosmetic Factory Thailand",
+    // High Volume Thai
+    "รวมรายชื่อโรงงานผลิต", // Collection of factory names
+    "รับผลิตอาหารเสริม",   // Supplement OEM
+    "โรงงานผลิตครีม",     // Cream Factory
+    "สร้างแบรนด์ตัวเอง",   // Build my own brand
+    "หาโรงงานผลิตสินค้า",  // Find product factory
+    "OEM อาหาร",         // Food OEM
+  ],
 };
 
 export default function RootLayout({

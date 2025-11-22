@@ -24,7 +24,7 @@ export const GET = withErrorHandling(async (request: Request) => {
   const oemOrgIds = Array.from(
     new Set(
       requests
-        .map((request) => request.oem_org_id)
+        .map((request: any) => request.oem_org_id)
         .filter((value): value is string => Boolean(value))
     )
   );
@@ -34,7 +34,7 @@ export const GET = withErrorHandling(async (request: Request) => {
   }
 
   const organizationIdFilter = `(${oemOrgIds
-    .map((id) => `"${id}"`)
+    .map((id: string) => `"${id}"`)
     .join(",")})`;
 
   const { data: oemProfiles, error: oemProfileError } = await supabase
@@ -73,19 +73,19 @@ export const GET = withErrorHandling(async (request: Request) => {
   });
 
   // Fetch files for all requests
-  const requestIds = requests.map((r) => r.id);
+  const requestIds = requests.map((r: any) => r.id);
   const { data: requestFiles } = await supabase
     .from("request_files")
     .select("id, request_id, path, mime_type, size_bytes")
     .in("request_id", requestIds);
 
   const filesMap = new Map<string, typeof requestFiles>();
-  requestFiles?.forEach((file) => {
+  requestFiles?.forEach((file: any) => {
     const existing = filesMap.get(file.request_id) ?? [];
     filesMap.set(file.request_id, [...existing, file]);
   });
 
-  const response = requests.map((request) => {
+  const response = requests.map((request: any) => {
     const profile = profileMap.get(request.oem_org_id ?? "");
     const files = filesMap.get(request.id) ?? [];
 
@@ -107,7 +107,7 @@ export const GET = withErrorHandling(async (request: Request) => {
       createdAt: request.created_at,
       buyerOrgId: request.buyer_org_id,
       oemOrgId: request.oem_org_id,
-      files: files.map((f) => ({
+      files: files.map((f: any) => ({
         id: f.id,
         path: f.path,
         mimeType: f.mime_type,

@@ -15,15 +15,15 @@ import { ORDER_STEPS } from "./constants";
 
 /** ========= Selectors / Helpers ========= */
 export const getOEMById = (id: number): OEM | undefined => {
-  return OEMS.find((o) => o.id === id);
+  return OEMS.find((o: OEM) => o.id === id);
 };
 
 export const getOEMsByIndustry = (industry: Industry): OEM[] => {
-  return OEMS.filter((o) => o.industry.includes(industry));
+  return OEMS.filter((o: OEM) => o.industry.includes(industry));
 };
 
 export const getOEMsByScale = (scale: Scale): OEM[] => {
-  return OEMS.filter((o) => o.scale === scale);
+  return OEMS.filter((o: OEM) => o.scale === scale);
 };
 
 export const canViewOEMDetails = (isAuthenticated: boolean): boolean => {
@@ -99,11 +99,11 @@ export const orderPercent = (status: OrderStage): number => {
 };
 
 export const getOrderById = (id: string): Order | undefined => {
-  return ORDERS.find((o) => o.id === id);
+  return ORDERS.find((o: Order) => o.id === id);
 };
 
 export const getOrdersByBuyer = (buyerId: string): Order[] => {
-  return ORDERS.filter((o) => o.buyerId === buyerId);
+  return ORDERS.filter((o: Order) => o.buyerId === buyerId);
 };
 
 export const formatCurrency = (amount: number): string => {

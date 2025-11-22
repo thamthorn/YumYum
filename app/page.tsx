@@ -1,13 +1,13 @@
 import Link from "next/link";
 import Image from "next/image";
-import type { Metadata } from "next";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import Navigation from "@/components/Navigation";
+import { PRODUCT_CATEGORIES } from "@/data/constants";
 import {
   Factory,
-  ShoppingBag,
+  // ...existing code...
   CheckCircle2,
   Clock,
   Globe,
@@ -16,129 +16,188 @@ import {
   Users,
   Zap,
   TrendingUp,
+  Search,
+  Sparkles,
+  Pill,
+  Palette,
+  Coffee,
+  Package,
+  Shirt,
+  Cpu,
+  Home as HomeIcon,
 } from "lucide-react";
 
-export const metadata: Metadata = {
-  title: "YUMYUM - Match with the Right OEM Manufacturer Faster",
-  description:
-    "From prototypes to production, find verified manufacturers who match your MOQ, timeline, and quality standards. Trusted by 500+ brands.",
-  openGraph: {
-    title: "YUMYUM - Match with the Right OEM Manufacturer Faster",
-    description:
-      "From prototypes to production, find verified manufacturers who match your MOQ, timeline, and quality standards. Trusted by 500+ brands.",
-  },
+
+
+// Map icon strings to components
+const IconMap: Record<string, any> = {
+  Sparkles,
+  Pill,
+  Palette,
+  Coffee,
+  Package,
+  Shirt,
+  Cpu,
+  Home: HomeIcon,
 };
 
 export default function Home() {
-  const heroImage = "/hero-manufacturing.jpg";
   const productsImage = "/products-variety.jpg";
 
   return (
     <div className="min-h-screen bg-background">
       <Navigation />
 
-      {/* Hero Section */}
-      <section className="pt-32 pb-20">
-        <div className="container mx-auto max-w-[1400px]">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
-            <div className="animate-fade-in">
-              <Badge variant="scale" className="mb-4">
-                🚀 Trusted by 500+ Brands
-              </Badge>
-              <h1 className="text-5xl lg:text-6xl font-bold mb-6 leading-tight">
-                Match with the right <span className="text-primary">OEM</span> —
-                faster
-              </h1>
-              <p className="text-xl text-muted-foreground mb-8 leading-relaxed">
-                From prototypes to production, find verified manufacturers who
-                match your MOQ, timeline, and quality standards. No more endless
-                searching.
-              </p>
-              <div className="flex flex-col sm:flex-row gap-4">
-                <Button size="xl" variant="hero" asChild>
-                  <Link href="/onboarding/buyer">
-                    <ShoppingBag className="mr-2" />
-                    Get Matched
-                  </Link>
-                </Button>
-                <Button size="xl" variant="outline" asChild>
-                  <Link href="/oems">
-                    <Factory className="mr-2" />
-                    Browse OEMs
-                  </Link>
-                </Button>
-              </div>
-              <div className="flex items-center gap-6 mt-8 text-sm text-muted-foreground">
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-success" />
-                  <span>Verified OEMs</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Clock className="h-4 w-4 text-primary" />
-                  <span>Normal Matching in 2 min</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Globe className="h-4 w-4 text-info" />
-                  <span>Cross-border Ready</span>
-                </div>
-              </div>
+      {/* Hero Section - Yellow Theme */}
+      <section className="pt-24 pb-24 relative overflow-hidden">
+        {/* Modern Gradient Background - Yellow to White to Yellow */}
+        <div className="absolute inset-0 bg-linear-to-r from-primary/10 via-white to-primary/15" />
 
-              {/* Trust Partners */}
-              <div className="mt-1 pt-8">
-                <p className="text-sm text-muted-foreground mb-4">
-                  Trusted & Supported By
-                </p>
-                <div className="flex items-center gap-8">
-                  <div className="flex items-center gap-3 p-3 bg-card rounded-lg border border-border/50">
-                    <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
-                      <Globe className="h-5 w-5 text-blue-600" />
-                    </div>
-                    <div>
-                      <div className="font-semibold text-sm">SEA Bridge</div>
-                      <div className="text-xs text-muted-foreground">
-                        Strategic Partner
-                      </div>
-                    </div>
+        {/* Abstract Shapes & Depth */}
+        <div className="absolute inset-0 bg-[url('/grid-pattern.svg')] opacity-5" />
+        <div className="absolute -top-[20%] -right-[10%] w-[600px] h-[600px] bg-yellow-200/40 rounded-full blur-[120px] animate-pulse" />
+        <div className="absolute top-[20%] -left-[10%] w-[500px] h-[500px] bg-orange-100/40 rounded-full blur-[100px]" />
+
+        <div className="container mx-auto max-w-[1400px] relative z-10">
+          <div className="flex flex-col items-center text-center max-w-4xl mx-auto mb-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+            <Badge
+              variant="secondary"
+              className="mb-4 px-4 py-1 text-xs font-medium bg-white/60 text-yellow-800 hover:bg-white/80 border-0 backdrop-blur-sm shadow-sm"
+            >
+              🚀 Trusted by 500+ Brands
+            </Badge>
+            <h1 className="text-3xl md:text-5xl font-bold text-slate-900 mb-4 tracking-tight">
+              Find your{" "}
+              <span className="text-primary underline decoration-4 decoration-primary/30 underline-offset-4">
+                OEM match
+              </span>
+            </h1>
+            <p className="text-lg text-slate-700 mb-6 font-medium max-w-2xl leading-relaxed">
+              Connect with verified manufacturers for your brand in minutes.
+              From prototype to production, we&apos;ve got you covered.
+            </p>
+
+            <div className="flex flex-col items-center gap-4">
+              <Button
+                size="lg"
+                className="w-full md:w-auto h-12 px-8 text-base font-bold shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all rounded-xl bg-primary hover:bg-primary-hover text-white"
+                asChild
+              >
+                <Link href="/matching">Start Matching</Link>
+              </Button>
+
+              <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-xs font-medium text-muted-foreground/80">
+                <div className="flex items-center gap-1.5">
+                  <div className="bg-green-100 p-1 rounded-full">
+                    <CheckCircle2 className="h-3 w-3 text-green-600" />
                   </div>
-                  {/* <div className="flex items-center gap-3 p-3 bg-card rounded-lg border border-border/50">
-                    <div className="h-10 w-10 rounded-full bg-orange-100 flex items-center justify-center">
-                      <Factory className="h-5 w-5 text-orange-600" />
-                    </div>
-                    <div>
-                      <div className="font-semibold text-sm">
-                        Paiboon Products
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        Founding OEM Partner
-                      </div>
-                    </div>
-                  </div> */}
+                  <span>Verified Factories</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="bg-blue-100 p-1 rounded-full">
+                    <Clock className="h-3 w-3 text-blue-600" />
+                  </div>
+                  <span>Fast Response</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="bg-purple-100 p-1 rounded-full">
+                    <Shield className="h-3 w-3 text-purple-600" />
+                  </div>
+                  <span>Secure Escrow</span>
                 </div>
               </div>
             </div>
-            <div className="relative animate-scale-in">
-              <Image
-                src={heroImage}
-                alt="Modern manufacturing facility"
-                width={1600}
-                height={1200}
-                className="rounded-2xl shadow-xl"
-                priority
-              />
-              <div className="absolute -bottom-6 -left-6 bg-card p-6 rounded-xl shadow-lg border border-border hidden lg:block">
-                <div className="flex items-center gap-3">
-                  <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
-                    <Zap className="h-6 w-6 text-primary" />
-                  </div>
-                  <div>
-                    <div className="font-semibold">48h Average</div>
-                    <div className="text-sm text-muted-foreground">
-                      Response Time
+          </div>
+        </div>
+      </section>
+
+      {/* Category Explorer - Overlapping Grid */}
+      <section className="pb-12 -mt-12 relative z-20 px-4">
+        <div className="container mx-auto max-w-[1000px]">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-200 fill-mode-backwards">
+            {PRODUCT_CATEGORIES.map((category) => {
+              const Icon = IconMap[category.icon] || Package;
+              return (
+                <Link
+                  key={category.slug}
+                  href={`/oems?category=${category.slug}`}
+                  className="group"
+                >
+                  <Card className="h-full p-4 hover:shadow-xl transition-all duration-300 border-0 bg-white hover:-translate-y-1.5 flex flex-col items-center text-center gap-3 relative overflow-hidden ring-1 ring-black/5">
+                    <div className="absolute inset-0 bg-linear-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                    <div className="h-12 w-12 rounded-2xl bg-primary/5 flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-all duration-300 group-hover:scale-110 group-hover:rotate-3 shadow-sm">
+                      <Icon className="h-6 w-6 text-primary group-hover:text-white transition-colors" />
                     </div>
-                  </div>
+                    <span className="font-bold text-sm text-foreground/80 group-hover:text-primary transition-colors">
+                      {category.label}
+                    </span>
+                  </Card>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* Original Content Below */}
+      <section className="py-20 bg-muted/30">
+        <div className="container mx-auto max-w-[1400px]">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl font-bold mb-4">How YUMYUM Works</h2>
+            <p className="text-muted-foreground max-w-2xl mx-auto">
+              We streamline the entire manufacturing process, from finding the
+              right partner to final delivery.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-8">
+            {[
+              {
+                icon: Search,
+                title: "1. Match",
+                desc: "Tell us what you need. Our AI matches you with verified OEMs that fit your criteria.",
+              },
+              {
+                icon: Users,
+                title: "2. Connect",
+                desc: "Chat directly with manufacturers, request samples, and negotiate terms securely.",
+              },
+              {
+                icon: Rocket,
+                title: "3. Launch",
+                desc: "Manage production, payments, and logistics all in one place. Launch faster.",
+              },
+            ].map((step, i) => (
+              <div
+                key={i}
+                className="flex flex-col items-center text-center p-6"
+              >
+                <div className="h-16 w-16 rounded-2xl bg-white shadow-sm flex items-center justify-center mb-6">
+                  <step.icon className="h-8 w-8 text-primary" />
                 </div>
+                <h3 className="text-xl font-bold mb-3">{step.title}</h3>
+                <p className="text-muted-foreground">{step.desc}</p>
               </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Trust Partners */}
+      <section className="py-12 border-y border-border/50">
+        <div className="container mx-auto max-w-[1400px]">
+          <p className="text-center text-sm text-muted-foreground mb-8 font-medium uppercase tracking-wider">
+            Trusted & Supported By
+          </p>
+          <div className="flex flex-wrap justify-center gap-8 md:gap-16 opacity-70 grayscale hover:grayscale-0 transition-all duration-500">
+            {/* Partner Logos would go here - using placeholders */}
+            <div className="flex items-center gap-2 font-bold text-xl">
+              <Globe className="h-6 w-6" /> SEA Bridge
             </div>
+
+            {/* <div className="flex items-center gap-2 font-bold text-xl">
+              <CheckCircle2 className="h-6 w-6" /> VerifiedMfg
+            </div> */}
           </div>
         </div>
       </section>
@@ -182,13 +241,13 @@ export default function Home() {
             ].map((item, index) => (
               <Card
                 key={index}
-                className="p-8 text-center hover:shadow-lg transition-all duration-300"
+                className="p-8 text-center hover:shadow-xl hover:-translate-y-1 transition-all duration-300 border-0 ring-1 ring-black/5"
               >
                 <div className="relative mb-6">
-                  <div className="h-16 w-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto">
-                    <item.icon className="h-8 w-8 text-primary" />
+                  <div className="h-16 w-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto group-hover:bg-primary group-hover:text-white transition-colors duration-300">
+                    <item.icon className="h-8 w-8 text-primary group-hover:text-white transition-colors" />
                   </div>
-                  <div className="absolute -top-2 -right-2 h-8 w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold">
+                  <div className="absolute -top-2 -right-2 h-8 w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold shadow-sm">
                     {item.step}
                   </div>
                 </div>
@@ -253,10 +312,10 @@ export default function Home() {
             ].map((feature, index) => (
               <Card
                 key={index}
-                className="p-6 hover:shadow-md transition-all duration-300 border-2 hover:border-primary/50"
+                className="p-6 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 border hover:border-primary/50 group"
               >
-                <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4">
-                  <feature.icon className="h-6 w-6 text-primary" />
+                <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4 group-hover:bg-primary group-hover:text-white transition-all duration-300">
+                  <feature.icon className="h-6 w-6 text-primary group-hover:text-white transition-colors" />
                 </div>
                 <h3 className="text-lg font-semibold mb-2">{feature.title}</h3>
                 <p className="text-muted-foreground text-sm">
@@ -321,7 +380,7 @@ export default function Home() {
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button size="xl" variant="hero" asChild>
-                <Link href="/onboarding/buyer">Get Matched Now</Link>
+                <Link href="/matching">Get Matched Now</Link>
               </Button>
               <Button size="xl" variant="outline" asChild>
                 <Link href="/pricing">View Pricing</Link>

@@ -14,6 +14,11 @@ type Product = Database["public"]["Tables"]["products"]["Row"] & {
     unit_price: number;
     currency: string;
   }>;
+  product_images?: Array<{
+    image_url: string;
+    alt_text: string | null;
+    is_primary: boolean;
+  }>;
 };
 
 interface ProductCardProps {
@@ -34,6 +39,15 @@ export default function ProductCard({
         ? `From $${lowestPrice.unit_price.toFixed(2)}`
         : "Contact for pricing";
 
+  // Determine display image
+  // 1. Try to find primary image
+  // 2. Fallback to first image in array
+  // 3. Fallback to legacy image_url column
+  const displayImage = 
+    product.product_images?.find(img => img.is_primary)?.image_url || 
+    product.product_images?.[0]?.image_url || 
+    product.image_url;
+
   return (
     <Card className="group overflow-hidden hover:shadow-lg transition-all duration-300 cursor-pointer">
       {/* Product Image */}
@@ -41,9 +55,9 @@ export default function ProductCard({
         className="relative h-48 bg-muted overflow-hidden"
         onClick={() => onViewDetails(product)}
       >
-        {product.image_url ? (
+        {displayImage ? (
           <Image
-            src={product.image_url}
+            src={displayImage}
             alt={product.name}
             fill
             className="object-cover group-hover:scale-105 transition-transform duration-300"

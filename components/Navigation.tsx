@@ -4,10 +4,28 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Menu, X } from "lucide-react";
+import {
+  Menu,
+  X,
+  User,
+  Settings,
+  LogOut,
+  Heart,
+  HelpCircle,
+} from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Badge } from "@/components/ui/badge";
 import { NAV, ROUTES } from "@/data/MockData";
 import { useSupabase } from "@/lib/supabase/session-context";
 import { useToast } from "@/hooks/use-toast";
+import { useQuery } from "@tanstack/react-query";
 
 const Navigation = () => {
   const pathname = usePathname();
@@ -17,6 +35,21 @@ const Navigation = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const isLoggedIn = !!session;
+
+  // Fetch saved OEMs count
+  const { data: savedCount = 0 } = useQuery({
+    queryKey: ["saved-oems-count", session?.user?.id],
+    queryFn: async () => {
+      if (!session?.user?.id) return 0;
+      const { count, error } = await supabase
+        .from("saved_oems")
+        .select("*", { count: "exact", head: true })
+        .eq("buyer_org_id", session.user.id);
+      if (error) return 0;
+      return count || 0;
+    },
+    enabled: isLoggedIn,
+  });
 
   const handleLogout = async () => {
     const { error } = await supabase.auth.signOut();
@@ -61,21 +94,69 @@ const Navigation = () => {
               </Link>
             ))}
             {isLoggedIn ? (
-              <>
-                <button
-                  onClick={handleLogout}
-                  className="text-sm font-medium transition-colors hover:text-primary text-muted-foreground"
-                >
-                  Logout
-                </button>
-                <Button size="sm" asChild>
-                  <Link href={ROUTES.onboarding}>Get Matched</Link>
-                </Button>
-              </>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="relative h-9 w-9 rounded-full border border-border"
+                  >
+                    <User className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <Link href="/settings" className="cursor-pointer">
+                      <Settings className="mr-2 h-4 w-4" />
+                      <span>Settings</span>
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link
+                      href="/saved-oems"
+                      className="cursor-pointer w-full flex justify-between items-center"
+                    >
+                      <div className="flex items-center">
+                        <Heart className="mr-2 h-4 w-4" />
+                        <span>Saved OEMs</span>
+                      </div>
+                      {savedCount > 0 && (
+                        <Badge
+                          variant="secondary"
+                          className="h-5 px-1.5 min-w-5"
+                        >
+                          {savedCount}
+                        </Badge>
+                      )}
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/support" className="cursor-pointer">
+                      <HelpCircle className="mr-2 h-4 w-4" />
+                      <span>Support</span>
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    className="text-destructive focus:text-destructive cursor-pointer"
+                    onClick={handleLogout}
+                  >
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>Log out</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             ) : (
-              <Button size="sm" asChild>
-                <Link href={ROUTES.login}>Get Matched</Link>
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button variant="ghost" size="sm" asChild>
+                  <Link href={ROUTES.login}>Login</Link>
+                </Button>
+                <Button size="sm" asChild>
+                  <Link href="/register">Sign Up</Link>
+                </Button>
+              </div>
             )}
           </div>
 
@@ -133,14 +214,24 @@ const Navigation = () => {
                     </Button>
                   </>
                 ) : (
-                  <Button size="sm" asChild>
-                    <Link
-                      href={ROUTES.login}
-                      onClick={() => setMobileMenuOpen(false)}
-                    >
-                      Get Matched
-                    </Link>
-                  </Button>
+                  <div className="flex flex-col gap-2">
+                    <Button variant="ghost" size="sm" asChild>
+                      <Link
+                        href={ROUTES.login}
+                        onClick={() => setMobileMenuOpen(false)}
+                      >
+                        Login
+                      </Link>
+                    </Button>
+                    <Button size="sm" asChild>
+                      <Link
+                        href="/register"
+                        onClick={() => setMobileMenuOpen(false)}
+                      >
+                        Sign Up
+                      </Link>
+                    </Button>
+                  </div>
                 )}
               </div>
             </div>

@@ -19,9 +19,10 @@ import {
   Globe,
   Rocket,
   FileText,
-  Package,
   Calendar,
   MessageSquare,
+  Play,
+  Image as ImageIcon,
 } from "lucide-react";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import {
@@ -116,6 +117,13 @@ export default async function OEMProfile({
       image_url,
       tags,
       note
+    ),
+    oem_media (
+      id,
+      title,
+      media_type,
+      video_url,
+      thumbnail_url
     )
   `;
 
@@ -141,6 +149,12 @@ export default async function OEMProfile({
         Pick<
           Database["public"]["Tables"]["oem_previous_products"]["Row"],
           "id" | "title" | "image_url" | "tags" | "note"
+        >
+      > | null;
+      oem_media: Array<
+        Pick<
+          Database["public"]["Tables"]["oem_media"]["Row"],
+          "id" | "title" | "media_type" | "video_url" | "thumbnail_url"
         >
       > | null;
     };
@@ -245,6 +259,7 @@ export default async function OEMProfile({
     }, "none") ?? "none";
 
   const previousProducts = profile.oem_previous_products ?? [];
+  const media = profile.oem_media ?? [];
   const languages =
     profile.oem_languages?.map((entry) =>
       languageDisplay(entry.language_code)
@@ -305,6 +320,23 @@ export default async function OEMProfile({
                         {organization.established_year}
                       </Badge>
                     )}
+                    {/* Production Capabilities as tags */}
+                    {profile.prototype_support && (
+                      <Badge
+                        variant="secondary"
+                        className="flex items-center gap-1"
+                      >
+                        <Rocket className="h-3 w-3" /> Prototype Support
+                      </Badge>
+                    )}
+                    {profile.cross_border && (
+                      <Badge
+                        variant="secondary"
+                        className="flex items-center gap-1"
+                      >
+                        <Globe className="h-3 w-3" /> Cross-border
+                      </Badge>
+                    )}
                   </div>
                   <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
                     {typeof profile.rating === "number" && (
@@ -323,6 +355,12 @@ export default async function OEMProfile({
                       </div>
                     )}
                   </div>
+                  {/* About as plain text */}
+                  <p className="text-muted-foreground leading-relaxed mt-3 max-w-2xl">
+                    {profile.short_description ??
+                      organization.description ??
+                      "Details coming soon."}
+                  </p>
                 </div>
               </div>
               <div className="flex flex-col gap-2">
@@ -399,36 +437,80 @@ export default async function OEMProfile({
           </div>
 
           {/* Tabs */}
-          <Tabs defaultValue="overview" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-5">
-              <TabsTrigger value="overview">Overview</TabsTrigger>
+          <Tabs defaultValue="videos" className="space-y-6">
+            <TabsList className="grid w-full grid-cols-6">
+              <TabsTrigger value="videos">Videos</TabsTrigger>
+              <TabsTrigger value="services">Services</TabsTrigger>
               <TabsTrigger value="products">Products</TabsTrigger>
               <TabsTrigger value="previous-products">Portfolio</TabsTrigger>
               <TabsTrigger value="certifications">Certifications</TabsTrigger>
               <TabsTrigger value="reviews">Reviews</TabsTrigger>
             </TabsList>
 
-            <TabsContent value="overview" className="space-y-6">
-              <Card className="p-6">
-                <h2 className="text-2xl font-semibold mb-4">About</h2>
-                <p className="text-muted-foreground leading-relaxed">
-                  {profile.short_description ??
-                    organization.description ??
-                    "Details coming soon."}
-                </p>
-              </Card>
-
-              {organization.industry && (
-                <Card className="p-6">
-                  <h2 className="text-2xl font-semibold mb-4">
-                    Industries Served
-                  </h2>
-                  <div className="flex flex-wrap gap-2">
-                    <Badge variant="secondary">{organization.industry}</Badge>
-                  </div>
+            <TabsContent value="videos" className="space-y-6">
+              {media.length === 0 ? (
+                <Card className="p-12 text-center text-muted-foreground">
+                  No factory videos or media yet.
                 </Card>
-              )}
+              ) : (
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                  {media.map((item, index) => (
+                    <div
+                      key={item.id ?? index}
+                      className="group relative aspect-[9/16] rounded-3xl overflow-hidden bg-slate-900"
+                    >
+                      {item.thumbnail_url ? (
+                        <Image
+                          src={item.thumbnail_url}
+                          alt={item.title ?? "Factory showcase"}
+                          fill
+                          className="object-cover transition-transform duration-500 group-hover:scale-105"
+                        />
+                      ) : (
+                        <div className="absolute inset-0 flex items-center justify-center text-white/70 text-sm bg-slate-800">
+                          No preview
+                        </div>
+                      )}
+                      <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/80 opacity-90" />
+                      <div className="absolute top-3 left-3 text-[11px] uppercase tracking-wide text-white/80 font-semibold">
+                        {item.media_type?.replace("_", " ") || "Media"}
+                      </div>
 
+                      {item.video_url && (
+                        <div className="absolute top-3 right-3 text-white text-xs font-medium bg-black/40 px-2 py-1 rounded-full flex items-center gap-1">
+                          <Play className="h-3 w-3 fill-white" /> Video
+                        </div>
+                      )}
+
+                      <div className="absolute inset-x-3 bottom-3 text-white space-y-1">
+                        <p className="text-sm font-semibold leading-snug line-clamp-2 drop-shadow-lg">
+                          {item.title || "Factory Media"}
+                        </p>
+
+                        {item.video_url ? (
+                          <a
+                            href={item.video_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-2 text-xs text-white/80 hover:text-white transition-colors"
+                          >
+                            <Play className="h-4 w-4 fill-white text-white" />
+                            <span>Watch Video</span>
+                          </a>
+                        ) : (
+                          <div className="flex items-center gap-2 text-xs text-white/80">
+                            <ImageIcon className="h-4 w-4" />
+                            <span>View Image</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="services" className="space-y-6">
               {services.length > 0 && (
                 <Card className="p-6">
                   <h2 className="text-2xl font-semibold mb-4">Key Services</h2>
@@ -444,28 +526,6 @@ export default async function OEMProfile({
                   </div>
                 </Card>
               )}
-
-              <Card className="p-6">
-                <h2 className="text-2xl font-semibold mb-4">
-                  Production Capabilities
-                </h2>
-                <div className="grid md:grid-cols-2 gap-4 text-sm text-muted-foreground">
-                  <div className="flex items-center gap-2">
-                    <Package className="h-4 w-4" />
-                    <span>Prototype Support</span>
-                    <span className="font-semibold text-foreground">
-                      {profile.prototype_support ? "Yes" : "No"}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Globe className="h-4 w-4" />
-                    <span>Cross-border Friendly</span>
-                    <span className="font-semibold text-foreground">
-                      {profile.cross_border ? "Yes" : "No"}
-                    </span>
-                  </div>
-                </div>
-              </Card>
             </TabsContent>
 
             <TabsContent value="products" className="space-y-4">

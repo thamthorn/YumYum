@@ -87,7 +87,7 @@ export const NAV: NavConfig = {
     { label: "List of OEMs", href: ROUTES.oems },
   ],
   loggedIn: [
-    { label: "Dashboard", href: ROUTES.buyerDashboard },
+    { label: "Dashboard", href: "/dashboard" }, // Will redirect based on user type
     { label: "Messages", href: ROUTES.messages },
     { label: "Saved OEMs", href: ROUTES.savedOems },
     { label: "List of OEMs", href: ROUTES.oems },

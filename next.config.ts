@@ -20,6 +20,10 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "www.ninelineapparel.com",
       },
+      {
+        protocol: "https",
+        hostname: "ktjkmidczokavuzmpesi.supabase.co",
+      },
     ],
   },
 };

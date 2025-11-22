@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import Navigation from "@/components/Navigation";
 import { Card } from "@/components/ui/card";
@@ -10,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { LogIn, Mail, Lock, LogOut } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useSupabase } from "@/lib/supabase/session-context";
+import type { Database } from "@/types/database";
 
 export default function LoginClient() {
   const router = useRouter();
@@ -40,9 +42,44 @@ export default function LoginClient() {
 
     toast({ description: "Logged in successfully!" });
 
-    const nextPath = searchParams.get("next") || "/dashboard/buyer";
-    router.push(nextPath);
+    // Check if there's a specific redirect path
+    const nextPath = searchParams.get("next");
+    if (nextPath) {
+      router.push(nextPath);
+      router.refresh();
+      setIsSubmitting(false);
+      return;
+    }
+
+    // Check user's organization type to determine redirect
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (user) {
+      const orgResult = await supabase
+        .from("organizations")
+        .select("type")
+        .eq("owner_id", user.id)
+        .maybeSingle();
+
+      const org = orgResult.data as
+        | Database["public"]["Tables"]["organizations"]["Row"]
+        | null;
+
+      if (org?.type === "oem") {
+        router.push("/dashboard/oem");
+      } else {
+        // Buyers go to homepage
+        router.push("/");
+      }
+    } else {
+      // Fallback to homepage
+      router.push("/");
+    }
+
     router.refresh();
+    setIsSubmitting(false);
   };
 
   const handleLogout = async () => {
@@ -168,7 +205,7 @@ export default function LoginClient() {
               <p className="text-muted-foreground">
                 Don&apos;t have an account?{" "}
                 <Button variant="link" className="p-0 h-auto" asChild>
-                  <a href="/onboarding/buyer">Get matched as a buyer</a>
+                  <Link href="/register">Sign up</Link>
                 </Button>
               </p>
             </div>

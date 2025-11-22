@@ -43,100 +43,56 @@ export default function Trust() {
             </p>
           </div>
 
-          {/* Verification Tiers */}
+          {/* Verification Standard */}
           <div className="mb-20">
             <h2 className="text-3xl font-bold text-center mb-12">
-              Our Verification Tiers
+              The Verified Partner Standard
             </h2>
-            <div className="grid md:grid-cols-3 gap-6">
-              <Card className="p-6 animate-scale-in">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="h-12 w-12 rounded-xl bg-success/10 flex items-center justify-center">
-                    <CheckCircle2 className="h-6 w-6 text-success" />
-                  </div>
-                  <Badge variant="verified">✓ Verified</Badge>
+            <div className="max-w-4xl mx-auto">
+              <Card className="p-8 animate-scale-in border-2 border-primary relative overflow-hidden">
+                <div className="absolute top-0 right-0 bg-primary text-white px-4 py-1 rounded-bl-xl font-medium">
+                  Highest Standard
                 </div>
-                <h3 className="text-xl font-bold mb-3">Verified</h3>
-                <p className="text-muted-foreground mb-4">
-                  Basic verification of business registration, identity, and
-                  contact information.
-                </p>
-                <div className="space-y-2 text-sm">
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-success" />
-                    <span>Business registration verified</span>
+                <div className="flex flex-col md:flex-row gap-8 items-center">
+                  <div className="shrink-0 text-center">
+                    <div className="h-24 w-24 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
+                      <Award className="h-12 w-12 text-primary" />
+                    </div>
+                    <Badge variant="verified" className="text-lg px-4 py-1">
+                      Verified Partner
+                    </Badge>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-success" />
-                    <span>Identity confirmed</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-success" />
-                    <span>Contact details validated</span>
-                  </div>
-                </div>
-              </Card>
-
-              <Card className="p-6 animate-scale-in border-2 border-info">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="h-12 w-12 rounded-xl bg-info/10 flex items-center justify-center">
-                    <FileCheck className="h-6 w-6 text-info" />
-                  </div>
-                  <Badge variant="certified">✓ Certified</Badge>
-                </div>
-                <h3 className="text-xl font-bold mb-3">Certified</h3>
-                <p className="text-muted-foreground mb-4">
-                  Enhanced verification including facility review,
-                  certifications, and quality standards.
-                </p>
-                <div className="space-y-2 text-sm">
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-info" />
-                    <span>All Verified checks</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-info" />
-                    <span>Facility documentation reviewed</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-info" />
-                    <span>Certifications validated</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-info" />
-                    <span>Sample products assessed</span>
-                  </div>
-                </div>
-              </Card>
-
-              <Card className="p-6 animate-scale-in border-2 border-primary">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="h-12 w-12 rounded-xl bg-trusted/10 flex items-center justify-center">
-                    <Star className="h-6 w-6 text-trusted" />
-                  </div>
-                  <Badge variant="trusted">✨ Trusted Partner</Badge>
-                </div>
-                <h3 className="text-xl font-bold mb-3">Trusted Partner</h3>
-                <p className="text-muted-foreground mb-4">
-                  Highest level including on-site audit, track record review,
-                  and performance guarantee.
-                </p>
-                <div className="space-y-2 text-sm">
-                  <div className="flex items-center gap-2">
-                    <Star className="h-4 w-4 text-trusted" />
-                    <span>All Certified checks</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Star className="h-4 w-4 text-trusted" />
-                    <span>On-site factory audit</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Star className="h-4 w-4 text-trusted" />
-                    <span>Performance guarantee</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Star className="h-4 w-4 text-trusted" />
-                    <span>Dedicated support liaison</span>
+                  <div className="flex-1">
+                    <h3 className="text-2xl font-bold mb-4">
+                      Factory Inspection & Compliance Check
+                    </h3>
+                    <p className="text-muted-foreground mb-6">
+                      The &quot;Verified Partner&quot; badge is our highest seal
+                      of trust. It means the manufacturer has undergone a
+                      rigorous physical or virtual inspection, their
+                      certifications have been validated, and their production
+                      capabilities are confirmed.
+                    </p>
+                    <div className="grid sm:grid-cols-2 gap-4">
+                      <div className="flex items-center gap-3">
+                        <CheckCircle2 className="h-5 w-5 text-success" />
+                        <span className="font-medium">Factory Inspection</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <CheckCircle2 className="h-5 w-5 text-success" />
+                        <span className="font-medium">Compliance Check</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <CheckCircle2 className="h-5 w-5 text-success" />
+                        <span className="font-medium">Factory Tour Video</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <CheckCircle2 className="h-5 w-5 text-success" />
+                        <span className="font-medium">
+                          QC Process Verification
+                        </span>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </Card>
@@ -149,35 +105,35 @@ export default function Trust() {
               Our Verification Process
             </h2>
             <p className="text-center text-muted-foreground mb-12 max-w-2xl mx-auto">
-              Every OEM goes through a multi-step verification to ensure they
-              meet our quality standards
+              To become a Verified Partner, OEMs must pass our comprehensive
+              4-step validation
             </p>
 
-            <div className="space-y-6">
+            <div className="grid md:grid-cols-2 gap-6">
               {[
                 {
                   icon: FileCheck,
-                  title: "Document Review",
+                  title: "1. Document Verification",
                   description:
-                    "We verify business registration, tax documents, and operational licenses to ensure legitimacy.",
-                },
-                {
-                  icon: Eye,
-                  title: "Facility Assessment",
-                  description:
-                    "Review of facility photos, equipment lists, and production capabilities to validate scale claims.",
+                    "We validate business registration, tax ID, and operational licenses to ensure the company is a legal entity.",
                 },
                 {
                   icon: Shield,
-                  title: "Certification Validation",
+                  title: "2. Certification Validation",
                   description:
-                    "Independent verification of ISO, GMP, FDA, and other certification claims with issuing bodies.",
+                    "We verify claimed certifications (GMP, ISO, Halal, FDA) directly with issuing bodies to ensure they are active and valid.",
                 },
                 {
-                  icon: Award,
-                  title: "Performance Tracking",
+                  icon: Eye,
+                  title: "3. Factory Inspection",
                   description:
-                    "Ongoing monitoring of response times, delivery reliability, and buyer satisfaction ratings.",
+                    "Our team or certified partners conduct an inspection (on-site or virtual) to verify machinery, production lines, and capacity.",
+                },
+                {
+                  icon: Star,
+                  title: "4. Video Verification",
+                  description:
+                    "We require and review Factory Tour and QC Process videos to ensure transparency in operations.",
                 },
               ].map((step, index) => (
                 <Card key={index} className="p-6 animate-fade-in">

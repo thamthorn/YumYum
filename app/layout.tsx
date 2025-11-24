@@ -16,6 +16,9 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://yum-yum-pi.vercel.app'),
+  verification: {
+    google: "VMJPuzpGFXUMKW0E3p-Ug5g0BAZsVqe_FYMMXFVS98E",
+  },
   // 1. Title: PURE KEYWORDS. No brand name.
   // This tells Google: "This site IS the direcyum-yum-pi.vercel.apptory."
   title: {

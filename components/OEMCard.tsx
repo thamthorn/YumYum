@@ -126,11 +126,7 @@ export function OEMCard({
 
         {/* Tier Badge Overlay */}
         <div className="absolute left-3 top-3">
-          {uiOem.tier === "VERIFIED_PARTNER" ? (
-            <VerifiedBadge />
-          ) : (
-            <TierBadge tier={uiOem.tier as any} size="sm" />
-          )}
+          <TierBadge tier={uiOem.tier as any} size="sm" />
         </div>
 
         {/* Match Score Overlay */}

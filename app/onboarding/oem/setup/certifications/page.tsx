@@ -77,6 +77,8 @@ export default function CertificationsStep() {
         .from("organizations")
         .select("id")
         .eq("owner_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(1)
         .single();
 
       // Supabase result may not have inferred types; coerce `org` to `any`

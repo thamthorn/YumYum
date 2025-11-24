@@ -47,6 +47,8 @@ export default function ReviewStep() {
         .select("*")
         .eq("owner_id", user.id)
         .eq("type", "oem")
+        .order("created_at", { ascending: false })
+        .limit(1)
         .single();
 
       if (!org) return;
@@ -119,8 +121,9 @@ export default function ReviewStep() {
 
       // Set status based on completeness
       // If complete, set to ACTIVE (will show in OEM list)
-      // Otherwise, set to INCOMPLETE
-      const newStatus = isComplete ? "ACTIVE" : "INCOMPLETE";
+      // If incomplete but user is submitting, set to REGISTERED so it remains visible
+      // INCOMPLETE status hides the profile from the list, which we want to avoid after explicit submission
+      const newStatus = isComplete ? "ACTIVE" : "REGISTERED";
 
       const { error: updateError } = await supabase
         .from("oem_profiles")

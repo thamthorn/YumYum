@@ -70,6 +70,8 @@ export default function ProductsStep() {
         .select("id")
         .eq("owner_id", user.id)
         .eq("type", "oem")
+        .order("created_at", { ascending: false })
+        .limit(1)
         .single();
 
       if (!org) {
@@ -596,3 +598,5 @@ export default function ProductsStep() {
     </WizardLayout>
   );
 }
+
+

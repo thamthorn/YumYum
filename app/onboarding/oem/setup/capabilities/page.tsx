@@ -56,6 +56,8 @@ export default function CapabilitiesStep() {
         .select("id")
         .eq("owner_id", user.id)
         .eq("type", "oem")
+        .order("created_at", { ascending: false })
+        .limit(1)
         .single();
 
       // When Supabase response types are not inferred, `org` can be typed as

@@ -92,6 +92,8 @@ function DashboardContent() {
           .select("id")
           .eq("owner_id", user.user.id)
           .eq("type", "oem")
+          .order("created_at", { ascending: false })
+          .limit(1)
           .single();
 
         const org = orgResult.data as { id?: string } | null;

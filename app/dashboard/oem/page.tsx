@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import {useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Navigation from "@/components/Navigation";
@@ -46,20 +46,7 @@ interface DashboardData {
 }
 
 export default function OEMDashboard() {
-  return (
-    <Suspense
-      fallback={
-        <div className="min-h-screen bg-background flex items-center justify-center">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-            <p className="text-muted-foreground">Loading dashboard...</p>
-          </div>
-        </div>
-      }
-    >
-      <DashboardContent />
-    </Suspense>
-  );
+  return <DashboardContent />;
 }
 
 function DashboardContent() {
@@ -181,18 +168,11 @@ function DashboardContent() {
     }
   }
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading dashboard...</p>
-        </div>
-      </div>
-    );
-  }
+  // Don't show loading spinner - let skeleton show via loading.tsx
+  // Data will populate when ready
 
-  if (!data) {
+  // Only show 'Setup Required' if loading is done and we still have no data
+  if (!loading && !data) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <Card className="p-8 max-w-md text-center">
@@ -208,8 +188,8 @@ function DashboardContent() {
     );
   }
 
-  const tier = (data.profile as any).currentTier || "FREE";
-  const completeness = data.profile.completeness || 0;
+  const tier = (data?.profile as any)?.currentTier || "FREE";
+  const completeness = data?.profile?.completeness || 0;
 
   return (
     <ProtectedClient>
@@ -226,9 +206,10 @@ function DashboardContent() {
                   <TierBadge tier={tier as SubscriptionTier} />
                 </div>
                 <p className="text-muted-foreground">
-                  {((data.profile as any).company_name ??
-                    (data.profile as any).display_name ??
-                    (data.profile as any).company_name_th) +
+                  {((data?.profile as any)?.company_name ??
+                    (data?.profile as any)?.display_name ??
+                    (data?.profile as any)?.company_name_th ??
+                    "Your Company") +
                     " - Manage your profile and connect with buyers"}
                 </p>
               </div>
@@ -245,7 +226,7 @@ function DashboardContent() {
               <Card className="p-6">
                 <div className="flex items-center justify-between mb-2">
                   <Package className="h-5 w-5 text-primary" />
-                  <Badge variant="scale">{data.productsCount}</Badge>
+                  <Badge variant="scale">{data?.productsCount ?? 0}</Badge>
                 </div>
                 <div className="text-sm text-muted-foreground">Products</div>
                 <Button
@@ -261,7 +242,7 @@ function DashboardContent() {
               <Card className="p-6">
                 <div className="flex items-center justify-between mb-2">
                   <Award className="h-5 w-5 text-primary" />
-                  <Badge variant="scale">{data.certificationsCount}</Badge>
+                  <Badge variant="scale">{data?.certificationsCount ?? 0}</Badge>
                 </div>
                 <div className="text-sm text-muted-foreground">
                   Certifications
@@ -303,7 +284,7 @@ function DashboardContent() {
               </Card>
 
               {/* Insights Access Card */}
-              {data.hasInsightsAccess && (
+              {data?.hasInsightsAccess && (
                 <Card className="p-6">
                   <div className="flex items-center justify-between mb-2">
                     <BarChart3 className="h-5 w-5 text-primary" />
@@ -353,21 +334,21 @@ function DashboardContent() {
                   <Badge variant="scale">{completeness}%</Badge>
                 </div>
                 <div className="flex gap-2">
-                  {data.productsCount === 0 && (
+                  {data?.productsCount === 0 && (
                     <Button size="sm" asChild>
                       <Link href="/onboarding/oem/setup/products">
                         Add Products
                       </Link>
                     </Button>
                   )}
-                  {data.certificationsCount === 0 && (
+                  {data?.certificationsCount === 0 && (
                     <Button size="sm" variant="outline" asChild>
                       <Link href="/onboarding/oem/setup/certifications">
                         Add Certifications
                       </Link>
                     </Button>
                   )}
-                  {!(data.profile as any).capabilities && (
+                  {!(data?.profile as any)?.capabilities && (
                     <Button size="sm" variant="outline" asChild>
                       <Link href="/onboarding/oem/setup/capabilities">
                         Add Capabilities
@@ -379,7 +360,7 @@ function DashboardContent() {
             )}
 
             {/* Analytics Section - Insights Tier+ */}
-            {data.hasInsightsAccess && (
+            {data?.hasInsightsAccess && (
               <div className="mb-8">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
@@ -394,7 +375,7 @@ function DashboardContent() {
                     </Link>
                   </Button>
                 </div>
-                {data.insightsData ? (
+                {data?.insightsData ? (
                   <AnalyticsOverview
                     profileViews={data.insightsData.profileViews}
                     contactClicks={data.insightsData.contactClicks}

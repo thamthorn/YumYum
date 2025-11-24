@@ -15,8 +15,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://yum-yum-pi.vercel.app'),
   // 1. Title: PURE KEYWORDS. No brand name.
-  // This tells Google: "This site IS the directory."
+  // This tells Google: "This site IS the direcyum-yum-pi.vercel.apptory."
   title: {
     default: "Find OEM Manufacturers Thailand | Food, Beauty & Wellness Factory List",
     template: "%s | Thailand OEM Directory", // Internal pages will look like "About Us | Thailand OEM Directory"
@@ -24,7 +25,7 @@ export const metadata: Metadata = {
 
   // 2. Description: Focus on the RESULT, not the platform name.
   description:
-    "Search verified Thai OEM factories for Food, Supplements, and Cosmetics. Filter by Low MOQ, GMP/HACCP standards, and price. Connect directly with manufacturers.",
+    "Search verified Thai OEM factories for Food, Supplements, and Cosmetics. Filter by Low MOQ, GMP/HACCP standards, and price. Connect directly with manufacturers. Matching with OEM.",
 
   // 3. Keywords: Remove "Yum2", keep the high-traffic terms.
   keywords: [

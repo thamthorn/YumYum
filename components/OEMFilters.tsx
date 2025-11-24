@@ -10,6 +10,7 @@ export interface OEMFilterState {
   moqRange: [number, number];
   leadTimeRange: [number, number];
   location: string[];
+  services: string[];
   hasRnD: boolean;
   hasPackaging: boolean;
   hasFormulaLibrary: boolean;
@@ -23,6 +24,7 @@ interface OEMFiltersProps {
   onReset: () => void;
   availableCategories?: string[];
   availableLocations?: string[];
+  availableServices?: string[];
 }
 
 export function OEMFilters({
@@ -31,6 +33,7 @@ export function OEMFilters({
   onReset,
   availableCategories = [],
   availableLocations = [],
+  availableServices = [],
 }: OEMFiltersProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -57,6 +60,7 @@ export function OEMFilters({
     filters.tiers.length,
     filters.certifications.length,
     filters.location.length,
+    filters.services.length,
     filters.hasRnD ? 1 : 0,
     filters.hasPackaging ? 1 : 0,
     filters.hasFormulaLibrary ? 1 : 0,
@@ -264,7 +268,7 @@ export function OEMFilters({
                 onChange={(e) =>
                   updateFilter("moqRange", [
                     filters.moqRange[0],
-                    parseInt(e.target.value) || 999999,
+                    parseInt(e.target.value) || 10000000,
                   ])
                 }
                 className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
@@ -298,7 +302,7 @@ export function OEMFilters({
                 onChange={(e) =>
                   updateFilter("leadTimeRange", [
                     filters.leadTimeRange[0],
-                    parseInt(e.target.value) || 365,
+                    parseInt(e.target.value) || 180,
                   ])
                 }
                 className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
@@ -351,9 +355,10 @@ export function useOEMFilters(initialFilters?: Partial<OEMFilterState>) {
     categories: [],
     tiers: [],
     certifications: [],
-    moqRange: [0, 999999],
-    leadTimeRange: [0, 365],
+    moqRange: [0, 10000000],
+    leadTimeRange: [0, 180],
     location: [],
+    services: [],
     hasRnD: false,
     hasPackaging: false,
     hasFormulaLibrary: false,

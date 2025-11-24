@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -24,6 +24,7 @@ interface OEMData {
   tier: SubscriptionTier;
   categories: string[];
   moq: number;
+  profileMoq: number | null;
   leadTime: number;
   products: Array<{
     category: string;
@@ -32,6 +33,7 @@ interface OEMData {
     priceRangeMin: number | null;
     images: string[];
   }>;
+  productCount: number;
   certifications: string[];
   capabilities: {
     hasRdSupport: boolean;
@@ -53,13 +55,11 @@ interface OEMWithScore extends OEMData {
   matchReasons: string[];
 }
 
-// This component holds ALL your logic
 function OEMListContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
   
-  // --- STATE DEFINITIONS ---
   const [oems, setOems] = useState<OEMData[]>([]);
   const [filteredOEMs, setFilteredOEMs] = useState<OEMWithScore[]>([]);
   const [loading, setLoading] = useState(true);
@@ -70,9 +70,10 @@ function OEMListContent() {
     tiers: [],
     categories: [],
     certifications: [],
-    moqRange: [0, 100000],
-    leadTimeRange: [0, 90],
+    moqRange: [0, 10000000],
+    leadTimeRange: [0, 180],
     location: [],
+    services: [],
     hasRnD: false,
     hasPackaging: false,
     hasFormulaLibrary: false,
@@ -80,8 +81,6 @@ function OEMListContent() {
     canExport: false,
   });
 
-  // --- EFFECTS ---
-  // Initialize filters from URL params
   useEffect(() => {
     const categoryParam = searchParams.get("category");
     if (categoryParam) {
@@ -119,7 +118,6 @@ function OEMListContent() {
     applyFiltersAndCalculateScores();
   }, [oems, filters]);
 
-  // --- HELPER FUNCTIONS ---
   async function handleOEMClick(oemId: string) {
     try {
       const supabase = createSupabaseBrowserClient();
@@ -228,10 +226,15 @@ function OEMListContent() {
           new Set(products.map((p: any) => p.category).filter(Boolean))
         ) as string[];
 
-        const moq =
+        const productMoq =
           products.length > 0
             ? Math.min(...products.map((p: any) => p.moq || 0))
             : 0;
+
+        const profileMoq = item.profile.moq_min;
+        
+        // Prefer profile MOQ, fallback to product MOQ
+        const displayMoq = profileMoq ?? productMoq;
 
         const leadTime =
           products.length > 0
@@ -247,7 +250,8 @@ function OEMListContent() {
           description: item.profile.description,
           tier: item.tier,
           categories,
-          moq,
+          moq: displayMoq,
+          profileMoq: profileMoq,
           leadTime,
           products,
           productCount: products.length,
@@ -414,13 +418,27 @@ function OEMListContent() {
       );
     }
 
-    filtered = filtered.filter((oem) =>
-      oem.products.some(
+    // MOQ filter: Check BOTH profile MOQ and product MOQ (OR logic)
+    filtered = filtered.filter((oem) => {
+      // If no products and no profile MOQ, keep the OEM
+      if (oem.products.length === 0 && !oem.profileMoq) return true;
+      
+      // Check if profile MOQ is within range
+      const profileMoqMatch = oem.profileMoq !== null && 
+        oem.profileMoq >= filters.moqRange[0] && 
+        oem.profileMoq <= filters.moqRange[1];
+      
+      // Check if any product MOQ is within range
+      const productMoqMatch = oem.products.some(
         (p) => p.moq >= filters.moqRange[0] && p.moq <= filters.moqRange[1]
-      )
-    );
+      );
+      
+      // Keep if EITHER profile MOQ OR product MOQ matches (OR logic)
+      return profileMoqMatch || productMoqMatch;
+    });
 
     filtered = filtered.filter((oem) =>
+      oem.products.length === 0 ||
       oem.products.some(
         (p) =>
           p.leadTimeDays >= filters.leadTimeRange[0] &&
@@ -527,20 +545,7 @@ function OEMListContent() {
     }
   }
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-background">
-        <Navigation />
-        <div className="pt-32 pb-20 flex items-center justify-center">
-          <div className="text-center">
-            <Factory className="h-16 w-16 text-primary mx-auto mb-4 animate-pulse" />
-            <p className="text-muted-foreground">Loading manufacturers...</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
+  // Show UI immediately, data will populate when ready
   return (
     <div className="min-h-screen bg-background">
       <Navigation />
@@ -573,9 +578,10 @@ function OEMListContent() {
                   tiers: [],
                   categories: [],
                   certifications: [],
-                  moqRange: [0, 100000],
-                  leadTimeRange: [0, 90],
+                  moqRange: [0, 10000000],
+                  leadTimeRange: [0, 180],
                   location: [],
+                  services: [],
                   hasRnD: false,
                   hasPackaging: false,
                   hasFormulaLibrary: false,
@@ -605,7 +611,7 @@ function OEMListContent() {
           </div>
 
           {/* Results */}
-          {filteredOEMs.length === 0 ? (
+          {!loading && filteredOEMs.length === 0 ? (
             <Card className="p-12 text-center">
               <Factory className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
               <h3 className="text-xl font-semibold mb-2">No matches found</h3>
@@ -619,9 +625,10 @@ function OEMListContent() {
                     tiers: [],
                     categories: [],
                     certifications: [],
-                    moqRange: [0, 100000],
-                    leadTimeRange: [0, 90],
+                    moqRange: [0, 10000000],
+                    leadTimeRange: [0, 180],
                     location: [],
+                    services: [],
                     hasRnD: false,
                     hasPackaging: false,
                     hasFormulaLibrary: false,
@@ -648,23 +655,6 @@ function OEMListContent() {
   );
 }
 
-// This is the wrapper that fixes the build error
 export default function OEMPage() {
-  return (
-    <Suspense
-      fallback={
-        <div className="min-h-screen bg-background">
-          <Navigation />
-          <div className="pt-32 pb-20 flex items-center justify-center">
-            <div className="text-center">
-              <Factory className="h-16 w-16 text-primary mx-auto mb-4 animate-pulse" />
-              <p className="text-muted-foreground">Loading...</p>
-            </div>
-          </div>
-        </div>
-      }
-    >
-      <OEMListContent />
-    </Suspense>
-  );
+  return <OEMListContent />;
 }
